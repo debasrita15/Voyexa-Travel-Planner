@@ -1,0 +1,17 @@
+Screenshot placeholders created.
+
+To add real screenshots:
+1. Run the app on device/emulator
+2. Navigate to each screen
+3. Capture using: adb shell screencap -p /sdcard/screenshot.png
+4. Pull using: adb pull /sdcard/screenshot.png screenshots/[name].png
+
+Required screenshots (200x400px recommended):
+- home.png
+- create_trip.png
+- trip_detail.png
+- ai_enrichment.png
+- suggestions.png
+- settings.png
+- year_planner.png
+- budget_tracking.png
