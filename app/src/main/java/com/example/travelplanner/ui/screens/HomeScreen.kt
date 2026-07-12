@@ -5,7 +5,9 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -29,6 +32,7 @@ import com.example.travelplanner.util.Dates
 import com.example.travelplanner.util.Money
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
+import androidx.compose.ui.graphics.vector.ImageVector
 
 class HomeViewModel : ViewModel() {
     val trips = AppGraph.tripRepository.observeTrips()
@@ -44,12 +48,13 @@ fun HomeScreen(
     onOpenYearPlanner: () -> Unit,
     onOpenTrip: (String) -> Unit
 ) {
+
     val vm: HomeViewModel = viewModel()
     val trips by vm.trips.collectAsState()
 
     val notifPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { granted -> }
+    ) { }
 
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= 33) {
@@ -58,81 +63,318 @@ fun HomeScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Travel Planner",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1
-                    )
-                },
-                actions = {
-                    IconButton(onClick = onOpenSuggestions) {
-                        Icon(Icons.Default.Info, "Trip Suggestions")
-                    }
-                    IconButton(onClick = onOpenYearPlanner) {
-                        Icon(Icons.Default.DateRange, "Year Planner")
-                    }
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Default.Settings, "Settings")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
-            )
-        },
+
+        containerColor = MaterialTheme.colorScheme.background,
+
         floatingActionButton = {
+
             ExtendedFloatingActionButton(
+
                 onClick = onCreateTrip,
-                icon = { Icon(Icons.Default.Add, "Create Trip") },
-                text = { Text("New Trip") },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+
+                icon = {
+                    Icon(Icons.Default.Add, null)
+                },
+
+                text = {
+                    Text("New Trip")
+                },
+
+                containerColor = MaterialTheme.colorScheme.tertiary,
+
+                contentColor = MaterialTheme.colorScheme.onTertiary
             )
         }
-    ) { pad ->
-        Column(
+
+    ) { padding ->
+
+        LazyColumn(
+
             modifier = Modifier
                 .fillMaxSize()
-                .padding(pad)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(padding),
+
+            contentPadding = PaddingValues(20.dp),
+
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+
         ) {
-            if (trips.isEmpty()) {
-                EmptyState(onCreateTrip)
-            } else {
-                Text(
-                    "Your Trips",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(vertical = 12.dp)
+
+            item {
+
+                HeroHeader(
+
+                    onOpenSettings = onOpenSettings,
+
+                    onOpenSuggestions = onOpenSuggestions,
+
+                    onOpenYearPlanner = onOpenYearPlanner,
+
+                    onCreateTrip = onCreateTrip
+
                 )
 
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(trips.size) { index ->
-                        TripCard(trip = trips[index], onClick = { onOpenTrip(trips[index].id) })
-
-                        if (index < trips.size - 1) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(vertical = 8.dp),
-                                thickness = 1.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant
-                            )
-                        }
-                    }
-                    item { Spacer(Modifier.height(80.dp)) }
-                }
             }
-        }
-    }
-}
 
+            if (trips.isEmpty()) {
+
+                item {
+
+                    EmptyState(onCreateTrip)
+
+                }
+
+            }
+
+            else {
+
+                item {
+
+                    Text(
+
+                        "Your Trips",
+
+                        style = MaterialTheme.typography.headlineSmall,
+
+                        fontWeight = FontWeight.Bold
+
+                    )
+
+                }
+
+                items(trips) {
+
+                    TripCard(
+
+                        trip = it,
+
+                        onClick = {
+
+                            onOpenTrip(it.id)
+
+                        }
+
+                    )
+
+                }
+
+                item {
+
+                    Spacer(
+                        Modifier.height(100.dp)
+                    )
+
+                }
+
+            }
+
+        }
+
+    }
+
+}
+@Composable
+private fun HeroHeader(
+    onOpenSettings: () -> Unit,
+    onOpenSuggestions: () -> Unit,
+    onOpenYearPlanner: () -> Unit,
+    onCreateTrip: () -> Unit
+) {
+
+    val dark = isSystemInDarkTheme()
+
+    val heroColor =
+        if (dark)
+            MaterialTheme.colorScheme.surface
+        else
+            MaterialTheme.colorScheme.primary
+
+    val heroText =
+        if (dark)
+            MaterialTheme.colorScheme.onSurface
+        else
+            MaterialTheme.colorScheme.onPrimary
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(32.dp),
+
+        border = BorderStroke(
+            width = if (dark) 1.dp else 0.dp,
+            color =
+                if (dark)
+                    MaterialTheme.colorScheme.primary.copy(.35f)
+                else
+                    Color.Transparent
+        ),
+
+        colors = CardDefaults.cardColors(
+            containerColor = heroColor
+        ),
+
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 10.dp
+        )
+    ) {
+
+        Column(
+            Modifier.padding(28.dp)
+        ) {
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+
+                    Text(
+                        "👋 Hello Traveller",
+                        color = heroText,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Spacer(Modifier.height(5.dp))
+
+                    Text(
+                        "Explore",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = heroText
+                    )
+
+                    Text(
+                        "The World",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = heroText
+                    )
+
+                    Spacer(Modifier.height(5.dp))
+
+                    Text(
+                        "Plan your next adventure",
+                        color = heroText.copy(.75f)
+                    )
+
+                }
+
+                FilledIconButton(
+
+                    onClick = onOpenSettings,
+
+                    colors = IconButtonDefaults.filledIconButtonColors(
+
+                        containerColor = MaterialTheme.colorScheme.tertiary,
+
+                        contentColor = MaterialTheme.colorScheme.onTertiary
+
+                    )
+
+                ) {
+
+                    Icon(Icons.Default.Settings, null)
+
+                }
+
+            }
+
+            Spacer(Modifier.height(15.dp))
+
+            Row(
+
+                modifier = Modifier.fillMaxWidth(),
+
+                horizontalArrangement = Arrangement.SpaceEvenly
+
+            ) {
+
+                HeaderButton(
+                    Icons.Default.Add,
+                    "Trip",
+                    onCreateTrip
+                )
+
+                HeaderButton(
+                    Icons.Default.Info,
+                    "Ideas",
+                    onOpenSuggestions
+                )
+
+                HeaderButton(
+                    Icons.Default.DateRange,
+                    "Planner",
+                    onOpenYearPlanner
+                )
+
+            }
+
+        }
+
+    }
+
+}
+@Composable
+private fun HeaderButton(
+    icon: ImageVector,
+    title: String,
+    onClick: () -> Unit
+) {
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable { onClick() }
+    ) {
+
+        Card(
+
+            shape = RoundedCornerShape(18.dp),
+
+            colors = CardDefaults.cardColors(
+
+                containerColor = MaterialTheme.colorScheme.tertiary
+
+            ),
+
+            elevation = CardDefaults.cardElevation(6.dp)
+
+        ) {
+
+            Icon(
+
+                icon,
+
+                null,
+
+                modifier = Modifier.padding(18.dp),
+
+                tint = MaterialTheme.colorScheme.onTertiary
+
+            )
+
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+
+            title,
+
+            color =
+                if (isSystemInDarkTheme())
+                    MaterialTheme.colorScheme.onSurface
+                else
+                    MaterialTheme.colorScheme.onPrimary,
+
+            style = MaterialTheme.typography.labelLarge
+
+        )
+
+    }
+
+}
 @Composable
 private fun EmptyState(onCreateTrip: () -> Unit) {
     Column(
@@ -173,50 +415,64 @@ private fun EmptyState(onCreateTrip: () -> Unit) {
         }
     }
 }
-
 @Composable
-private fun TripCard(trip: TripPlanEntity, onClick: () -> Unit) {
+private fun TripCard(
+    trip: TripPlanEntity,
+    onClick: () -> Unit
+) {
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
             .clickable { onClick() },
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 8.dp
         )
     ) {
-        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+        Column(
+            modifier = Modifier.padding(22.dp)
+        ) {
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+
                     Text(
-                        trip.title,
+                        text = trip.title.uppercase(),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+
+                    Spacer(Modifier.height(10.dp))
+                    val dark = isSystemInDarkTheme()
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+
                         Icon(
                             Icons.Default.LocationOn,
                             null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = if (dark) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
                         )
+
+                        Spacer(Modifier.width(6.dp))
+
                         Text(
                             trip.destination,
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary
+                            color = if (dark) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -224,113 +480,159 @@ private fun TripCard(trip: TripPlanEntity, onClick: () -> Unit) {
                 StatusChip(trip.status)
             }
 
-            Spacer(Modifier.height(12.dp))
-            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                TripInfoItem(
-                    icon = Icons.Default.DateRange,
-                    label = "Dates",
-                    value = "${Dates.formatDate(trip.startDateEpochMs)} - ${Dates.formatDate(trip.endDateEpochMs)}",
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
+
+            TripInfoItem(
+                icon = Icons.Default.DateRange,
+                label = "Travel Dates",
+                value = "${Dates.formatDate(trip.startDateEpochMs)} - ${
+                    Dates.formatDate(trip.endDateEpochMs)
+                }"
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            TripInfoItem(
+                icon = Icons.Default.Star,
+                label = "Budget",
+                value = Money.format(trip.budgetCap)
+            )
+
+            Spacer(Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TripInfoItem(
-                    icon = Icons.Default.Star,
-                    label = "Budget",
-                    value = Money.format(trip.budgetCap)
-                )
 
                 Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.tertiaryContainer
                 ) {
+
                     Text(
-                        trip.type.name,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        fontWeight = FontWeight.Medium
+                        text = trip.type.name,
+                        modifier = Modifier.padding(
+                            horizontal = 16.dp,
+                            vertical = 8.dp
+                        ),
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
+
+                Icon(
+                    Icons.Default.ArrowForward,
+                    null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(28.dp)
+                )
             }
         }
     }
 }
-
 @Composable
-private fun StatusChip(status: TripStatus) {
-    val (color, icon) = when (status) {
-        TripStatus.DRAFT -> MaterialTheme.colorScheme.tertiaryContainer to Icons.Default.Edit
-        TripStatus.PLANNED -> MaterialTheme.colorScheme.primaryContainer to Icons.Default.CheckCircle
-        TripStatus.COMPLETED -> MaterialTheme.colorScheme.secondaryContainer to Icons.Default.Done
+private fun StatusChip(
+    status: TripStatus
+) {
+    val dark = isSystemInDarkTheme()
+    val background = when (status) {
+        TripStatus.DRAFT -> if (dark) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer
+        TripStatus.PLANNED -> if (dark) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer
+        TripStatus.COMPLETED -> if (dark) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer
+    }
+
+    val icon = when (status) {
+
+        TripStatus.DRAFT ->
+            Icons.Default.Edit
+
+        TripStatus.PLANNED ->
+            Icons.Default.CheckCircle
+
+        TripStatus.COMPLETED ->
+            Icons.Default.Done
     }
 
     Surface(
-        color = color,
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(50),
+        color = background
     ) {
+
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier.padding(
+                horizontal = 16.dp,
+                vertical = 8.dp
+            ),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+
             Icon(
                 icon,
                 null,
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                modifier = Modifier.size(16.dp)
             )
+
+            Spacer(Modifier.width(6.dp))
+
             Text(
                 status.name,
-                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold
             )
         }
     }
 }
-
 @Composable
 private fun TripInfoItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
     value: String,
     modifier: Modifier = Modifier
 ) {
+    val dark = isSystemInDarkTheme()
     Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            icon,
-            null,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
+
+        Surface(
+            // Keep primaryContainer for Light, use surfaceContainer for Dark
+            color = if (dark) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.primaryContainer,
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Icon(
+                icon,
+                null,
+                // Keep primary for Light, use onSurfaceVariant for Dark
+                tint = if (dark) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(10.dp)
+            )
+        }
+
+        Spacer(Modifier.width(14.dp))
+
         Column {
+
             Text(
                 label,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            Spacer(Modifier.height(2.dp))
+
             Text(
                 value,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }

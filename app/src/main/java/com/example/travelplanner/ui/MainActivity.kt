@@ -8,6 +8,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.core.view.WindowCompat
 import com.example.travelplanner.ui.navigation.NavGraph
+import com.example.travelplanner.ui.theme.TravelPlannerTheme
+//import com.example.travelplanner.ui.theme.TravelPlannerTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -17,10 +19,16 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
-            MaterialTheme {
-                Surface {
+            TravelPlannerTheme {
+
+                Surface(
+                    color = MaterialTheme.colorScheme.background
+                ) {
+
                     NavGraph()
+
                 }
+
             }
         }
     }

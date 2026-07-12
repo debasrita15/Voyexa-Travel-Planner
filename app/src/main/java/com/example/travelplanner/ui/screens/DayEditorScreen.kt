@@ -19,6 +19,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.burnoutcrew.reorderable.*
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.text.font.FontWeight
 
 class DayEditorViewModel(private val dayId: String) : ViewModel() {
 
@@ -83,39 +87,116 @@ fun DayEditorScreen(dayId: String, onBack: () -> Unit) {
     )
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+
         topBar = {
             TopAppBar(
-                title = { Text("Day Editor", maxLines = 1) },
+                title = {
+                    Text(
+                        "Day Editor",
+                        maxLines = 1
+                    )
+                },
+
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
                     }
                 },
+
                 actions = {
-                    TextButton(onClick = { vm.addItem() }) { Text("Add") }
-                }
+                    TextButton(
+                        onClick = { vm.addItem() }
+                    ) {
+                        Text(
+                            text = "Add",
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = if (isSystemInDarkTheme())
+                                MaterialTheme.colorScheme.onPrimary
+                            else
+                                MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
+
+                colors = TopAppBarDefaults.topAppBarColors(
+
+                    containerColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.tertiary
+                        else
+                            MaterialTheme.colorScheme.primary,
+
+                    titleContentColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.onTertiary
+                        else
+                            MaterialTheme.colorScheme.onPrimary,
+
+                    navigationIconContentColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.onTertiary
+                        else
+                            MaterialTheme.colorScheme.onPrimary,
+
+                    actionIconContentColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.onTertiary
+                        else
+                            MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
     ) { pad ->
+
         LazyColumn(
             state = reorderState.listState,
-            modifier = Modifier.padding(pad).padding(16.dp)
+            modifier = Modifier
+                .padding(pad)
+                .padding(16.dp)
                 .reorderable(reorderState)
                 .detectReorderAfterLongPress(reorderState)
         ) {
+
             items(listStateItems, key = { it.id }) { item ->
-                ReorderableItem(reorderState, key = item.id) { isDragging ->
+
+                ReorderableItem(reorderState, key = item.id) {
+
                     Card(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                        shape = MaterialTheme.shapes.large
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        shape = MaterialTheme.shapes.large,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        )
                     ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Text("${item.timeSlot} • ${item.commuteMinutes} min",
+
+                        Column(
+                            modifier = Modifier.padding(14.dp)
+                        ) {
+
+                            Text(
+                                "${item.timeSlot} • ${item.commuteMinutes} min",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Text(item.title, style = MaterialTheme.typography.titleMedium)
-                            Text(item.notes, style = MaterialTheme.typography.bodySmall,
+
+                            Spacer(Modifier.height(4.dp))
+
+                            Text(
+                                item.title,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+
+                            Spacer(Modifier.height(4.dp))
+
+                            Text(
+                                item.notes,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }

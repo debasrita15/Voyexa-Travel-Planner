@@ -2,6 +2,7 @@ package com.example.travelplanner.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +32,7 @@ import com.example.travelplanner.domain.TravelPace
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
 
 class SettingsViewModel : ViewModel() {
     val settingsFlow = AppGraph.settingsRepository.observeSettings()
@@ -122,96 +124,223 @@ class SettingsViewModel : ViewModel() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
+fun SettingsScreen(
+    onBack: () -> Unit
+) {
+
     val vm: SettingsViewModel = viewModel()
     val settings = vm.settingsFlow.collectAsState().value
 
     if (settings == null) {
+
         Scaffold(
+
+            containerColor = MaterialTheme.colorScheme.background,
+
             topBar = {
+
                 TopAppBar(
-                    title = { Text("Settings") },
+                    title = {
+                        Text(
+                            "Settings",
+                            style = MaterialTheme.typography.titleLarge,
+                            maxLines = 1
+                        )
+                    },
+
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, "Back")
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
                         }
-                    }
+                    },
+
+                    colors = TopAppBarDefaults.topAppBarColors(
+
+                        containerColor =
+                            if (isSystemInDarkTheme())
+                                MaterialTheme.colorScheme.tertiary
+                            else
+                                MaterialTheme.colorScheme.primary,
+
+                        titleContentColor =
+                            if (isSystemInDarkTheme())
+                                MaterialTheme.colorScheme.onTertiary
+                            else
+                                MaterialTheme.colorScheme.onPrimary,
+
+                        navigationIconContentColor =
+                            if (isSystemInDarkTheme())
+                                MaterialTheme.colorScheme.onTertiary
+                            else
+                                MaterialTheme.colorScheme.onPrimary
+                    )
                 )
+
             }
+
         ) { pad ->
+
             Box(
-                Modifier
+
+                modifier = Modifier
                     .fillMaxSize()
                     .padding(pad),
+
                 contentAlignment = Alignment.Center
+
             ) {
-                CircularProgressIndicator()
+
+                CircularProgressIndicator(
+                    color =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.tertiary
+                        else
+                            MaterialTheme.colorScheme.primary
+                )
+
             }
+
         }
+
         return
     }
 
     Scaffold(
+
+        containerColor = MaterialTheme.colorScheme.background,
+
         topBar = {
+
             TopAppBar(
+
                 title = {
+
                     Text(
-                        "Settings",
+                        text = "Settings",
                         style = MaterialTheme.typography.titleLarge,
                         maxLines = 1
                     )
+
                 },
+
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+
+                    IconButton(
+                        onClick = onBack
+                    ) {
+
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+
                     }
+
                 },
+
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+
+                    containerColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.tertiary
+                        else
+                            MaterialTheme.colorScheme.primary,
+
+                    titleContentColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.onTertiary
+                        else
+                            MaterialTheme.colorScheme.onPrimary,
+
+                    navigationIconContentColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.onTertiary
+                        else
+                            MaterialTheme.colorScheme.onPrimary
+
                 )
+
             )
+
         }
+
     ) { pad ->
+
         Column(
+
             modifier = Modifier
                 .fillMaxSize()
                 .padding(pad)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(20.dp),
+
             verticalArrangement = Arrangement.spacedBy(20.dp)
+
         ) {
+
             TravelPreferencesSection(
+
                 settings = settings,
+
                 onHomeCityChange = vm::updateHomeCity,
+
                 onHomeCountryChange = vm::updateHomeCountry,
+
                 onCurrencyChange = vm::updateCurrency,
+
                 onBudgetChange = vm::updateYearlyBudget,
+
                 onKidAgeChange = vm::updateKidAge,
+
                 onPaceChange = vm::updatePace
+
             )
 
             LLMProviderSection(
+
                 settings = settings,
+
                 onProviderChange = vm::updateLLMProvider,
+
                 onOpenAIModelChange = vm::updateOpenAIModel,
+
                 onGroqModelChange = vm::updateGroqModel,
+
                 onGeminiModelChange = vm::updateGeminiModel,
+
                 onAnthropicModelChange = vm::updateAnthropicModel,
+
                 onMCPProvidersChange = vm::updateMCPProviders,
+
                 onSaveOpenAIKey = vm::saveOpenAIKey,
+
                 onSaveGroqKey = vm::saveGroqKey,
+
                 onSaveGeminiKey = vm::saveGeminiKey,
+
                 onSaveAnthropicKey = vm::saveAnthropicKey,
+
                 loadOpenAIKey = vm::loadOpenAIKey,
+
                 loadGroqKey = vm::loadGroqKey,
+
                 loadGeminiKey = vm::loadGeminiKey,
+
                 loadAnthropicKey = vm::loadAnthropicKey
+
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(
+                Modifier.height(20.dp)
+            )
+
         }
+
     }
+
 }
 
 @Composable
@@ -224,35 +353,87 @@ private fun TravelPreferencesSection(
     onKidAgeChange: (Int) -> Unit,
     onPaceChange: (TravelPace) -> Unit
 ) {
+
     val focusManager = LocalFocusManager.current
-    var homeCityText by remember(settings.homeCity) { mutableStateOf(settings.homeCity) }
-    var homeCountryText by remember(settings.homeCountry) { mutableStateOf(settings.homeCountry) }
-    var budgetText by remember(settings.yearlyBudget) { mutableStateOf(settings.yearlyBudget.toInt().toString()) }
-    var kidAgeText by remember(settings.kidAgeYears) { mutableStateOf(settings.kidAgeYears.toString()) }
+    val dark = isSystemInDarkTheme()
+
+    var homeCityText by remember(settings.homeCity) {
+        mutableStateOf(settings.homeCity)
+    }
+
+    var homeCountryText by remember(settings.homeCountry) {
+        mutableStateOf(settings.homeCountry)
+    }
+
+    var budgetText by remember(settings.yearlyBudget) {
+        mutableStateOf(settings.yearlyBudget.toInt().toString())
+    }
+
+    var kidAgeText by remember(settings.kidAgeYears) {
+        mutableStateOf(settings.kidAgeYears.toString())
+    }
+
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+
+        focusedBorderColor =
+            if (dark)
+                MaterialTheme.colorScheme.tertiary
+            else
+                MaterialTheme.colorScheme.primary,
+
+        focusedLabelColor =
+            if (dark)
+                MaterialTheme.colorScheme.tertiary
+            else
+                MaterialTheme.colorScheme.primary,
+
+        cursorColor =
+            if (dark)
+                MaterialTheme.colorScheme.tertiary
+            else
+                MaterialTheme.colorScheme.primary,
+
+        focusedLeadingIconColor =
+            if (dark)
+                MaterialTheme.colorScheme.tertiary
+            else
+                MaterialTheme.colorScheme.primary,
+
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+
+        unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 
     SettingsSection(
         title = "Travel Preferences",
         icon = Icons.Default.Home
     ) {
+
         OutlinedTextField(
             value = homeCityText,
             onValueChange = {
                 homeCityText = it
                 onHomeCityChange(it)
             },
-            label = { Text("Home City") },
-            leadingIcon = { Icon(Icons.Default.LocationOn, null) },
             modifier = Modifier.fillMaxWidth(),
+            label = { Text("Home City") },
+            leadingIcon = {
+                Icon(Icons.Default.LocationOn, null)
+            },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            keyboardActions = KeyboardActions(
-                onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) }
+            shape = RoundedCornerShape(18.dp),
+            colors = textFieldColors,
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Next
             ),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            keyboardActions = KeyboardActions(
+                onNext = {
+                    focusManager.moveFocus(
+                        androidx.compose.ui.focus.FocusDirection.Down
+                    )
+                }
             )
         )
 
@@ -262,30 +443,40 @@ private fun TravelPreferencesSection(
                 homeCountryText = it
                 onHomeCountryChange(it)
             },
-            label = { Text("Home Country") },
-            leadingIcon = { Icon(Icons.Default.Place, null) },
             modifier = Modifier.fillMaxWidth(),
+            label = { Text("Home Country") },
+            leadingIcon = {
+                Icon(Icons.Default.Place, null)
+            },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            keyboardActions = KeyboardActions(
-                onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) }
+            shape = RoundedCornerShape(18.dp),
+            colors = textFieldColors,
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Next
             ),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            keyboardActions = KeyboardActions(
+                onNext = {
+                    focusManager.moveFocus(
+                        androidx.compose.ui.focus.FocusDirection.Down
+                    )
+                }
             )
         )
 
         DropdownSetting(
             label = "Currency",
             icon = Icons.Default.Star,
-            current = "${settings.currency} - ${com.example.travelplanner.util.Money.getSupportedCurrencies().find { it.first == settings.currency }?.second ?: settings.currency}",
-            values = com.example.travelplanner.util.Money.getSupportedCurrencies().map { "${it.first} - ${it.second}" },
+            current = "${settings.currency} - ${
+                com.example.travelplanner.util.Money
+                    .getSupportedCurrencies()
+                    .find { it.first == settings.currency }
+                    ?.second ?: settings.currency
+            }",
+            values = com.example.travelplanner.util.Money
+                .getSupportedCurrencies()
+                .map { "${it.first} - ${it.second}" },
             onSelect = {
-                val currencyCode = it.split(" - ")[0]
-                onCurrencyChange(currencyCode)
+                onCurrencyChange(it.split(" - ")[0])
             }
         )
 
@@ -293,24 +484,26 @@ private fun TravelPreferencesSection(
             value = budgetText,
             onValueChange = {
                 budgetText = it
-                it.toDoubleOrNull()?.let { value -> onBudgetChange(value) }
+                it.toDoubleOrNull()?.let(onBudgetChange)
             },
-            label = { Text("Yearly Travel Budget") },
-            leadingIcon = { Icon(Icons.Default.Star, null) },
             modifier = Modifier.fillMaxWidth(),
+            label = { Text("Yearly Travel Budget") },
+            leadingIcon = {
+                Icon(Icons.Default.Star, null)
+            },
             singleLine = true,
+            shape = RoundedCornerShape(18.dp),
+            colors = textFieldColors,
             keyboardOptions = KeyboardOptions(
-                imeAction = ImeAction.Next,
-                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                imeAction = ImeAction.Next
             ),
             keyboardActions = KeyboardActions(
-                onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) }
-            ),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                onNext = {
+                    focusManager.moveFocus(
+                        androidx.compose.ui.focus.FocusDirection.Down
+                    )
+                }
             )
         )
 
@@ -318,24 +511,24 @@ private fun TravelPreferencesSection(
             value = kidAgeText,
             onValueChange = {
                 kidAgeText = it
-                it.toIntOrNull()?.let { value -> onKidAgeChange(value) }
+                it.toIntOrNull()?.let(onKidAgeChange)
             },
-            label = { Text("Kid Age (years)") },
-            leadingIcon = { Icon(Icons.Default.Person, null) },
             modifier = Modifier.fillMaxWidth(),
+            label = { Text("Kid Age (years)") },
+            leadingIcon = {
+                Icon(Icons.Default.Person, null)
+            },
             singleLine = true,
+            shape = RoundedCornerShape(18.dp),
+            colors = textFieldColors,
             keyboardOptions = KeyboardOptions(
-                imeAction = ImeAction.Done,
-                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                imeAction = ImeAction.Done
             ),
             keyboardActions = KeyboardActions(
-                onDone = { focusManager.clearFocus() }
-            ),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                onDone = {
+                    focusManager.clearFocus()
+                }
             )
         )
 
@@ -344,7 +537,11 @@ private fun TravelPreferencesSection(
             icon = Icons.Default.Info,
             current = settings.travelPace.name,
             values = TravelPace.values().map { it.name },
-            onSelect = { onPaceChange(TravelPace.valueOf(it)) }
+            onSelect = {
+                onPaceChange(
+                    TravelPace.valueOf(it)
+                )
+            }
         )
     }
 }
@@ -480,119 +677,207 @@ private fun MCPConfigCard(
     loadGeminiKey: () -> String,
     loadAnthropicKey: () -> String
 ) {
+
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp
+        )
     ) {
+
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+
                 Text(
                     text = "MCP Aggregator",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
+
                 Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.tertiaryContainer
                 ) {
+
                     Text(
-                        text = "✓ Best of Multiple AIs",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
+                        text = "Best of Multiple AIs",
+                        modifier = Modifier.padding(
+                            horizontal = 14.dp,
+                            vertical = 8.dp
+                        ),
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
 
             Text(
-                "Select which AI providers to combine (needs their API keys):",
-                style = MaterialTheme.typography.bodySmall,
+                text = "Select which AI providers to combine:",
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            val availableProviders = listOf("GROQ", "GEMINI", "ANTHROPIC", "OPENAI")
+            val providers = listOf(
+                "GROQ",
+                "GEMINI",
+                "ANTHROPIC",
+                "OPENAI"
+            )
 
-            availableProviders.forEach { provider ->
-                Row(
+            providers.forEach { provider ->
+
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                 ) {
+
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = 12.dp,
+                                vertical = 10.dp
+                            ),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+
                         Checkbox(
                             checked = selectedProviders.contains(provider),
                             onCheckedChange = { checked ->
-                                val newList = if (checked) {
-                                    selectedProviders + provider
-                                } else {
-                                    selectedProviders - provider
-                                }
-                                onProvidersChange(newList)
-                            }
-                        )
-                        Text(provider)
-                    }
 
-                    val hasKey = when (provider) {
-                        "OPENAI" -> loadOpenAIKey().isNotEmpty()
-                        "GROQ" -> loadGroqKey().isNotEmpty()
-                        "GEMINI" -> loadGeminiKey().isNotEmpty()
-                        "ANTHROPIC" -> loadAnthropicKey().isNotEmpty()
-                        else -> false
-                    }
+                                val updated =
+                                    if (checked)
+                                        selectedProviders + provider
+                                    else
+                                        selectedProviders - provider
 
-                    if (hasKey) {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                                onProvidersChange(updated)
+                            },
+
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = MaterialTheme.colorScheme.tertiary,
+                                uncheckedColor = MaterialTheme.colorScheme.outline
+                            )
                         )
-                    } else {
+
                         Text(
-                            "No key",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
+                            provider,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyLarge
                         )
+
+                        val hasKey =
+                            when (provider) {
+
+                                "OPENAI" ->
+                                    loadOpenAIKey().isNotEmpty()
+
+                                "GROQ" ->
+                                    loadGroqKey().isNotEmpty()
+
+                                "GEMINI" ->
+                                    loadGeminiKey().isNotEmpty()
+
+                                "ANTHROPIC" ->
+                                    loadAnthropicKey().isNotEmpty()
+
+                                else -> false
+                            }
+
+                        if (hasKey) {
+
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = MaterialTheme.colorScheme.tertiaryContainer
+                            ) {
+
+                                Row(
+                                    modifier = Modifier.padding(
+                                        horizontal = 10.dp,
+                                        vertical = 6.dp
+                                    ),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+
+                                    Spacer(Modifier.width(4.dp))
+
+                                    Text(
+                                        "Ready",
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+                            }
+
+                        } else {
+
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = MaterialTheme.colorScheme.errorContainer
+                            ) {
+
+                                Text(
+                                    text = "No Key",
+                                    modifier = Modifier.padding(
+                                        horizontal = 10.dp,
+                                        vertical = 6.dp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
                     }
                 }
             }
 
             if (selectedProviders.size < 2) {
+
                 Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.errorContainer
                 ) {
+
                     Text(
-                        "⚠️ Select at least 2 providers for MCP to work",
-                        modifier = Modifier.padding(8.dp),
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "Select at least 2 providers for MCP.",
+                        modifier = Modifier.padding(12.dp),
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
+
             } else {
+
                 Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer
                 ) {
+
                     Text(
-                        "✓ MCP will merge results from ${selectedProviders.size} providers",
-                        modifier = Modifier.padding(8.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        text = "MCP will combine ${selectedProviders.size} providers.",
+                        modifier = Modifier.padding(12.dp),
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -611,6 +896,9 @@ private fun ProviderConfigCard(
     infoText: String,
     keyPlaceholder: String
 ) {
+
+    val dark = isSystemInDarkTheme()
+
     var apiKey by remember { mutableStateOf("") }
     var showKey by remember { mutableStateOf(false) }
     var showSuccess by remember { mutableStateOf(false) }
@@ -622,36 +910,84 @@ private fun ProviderConfigCard(
         }
     }
 
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+
+        focusedBorderColor =
+            if (dark)
+                MaterialTheme.colorScheme.tertiary
+            else
+                MaterialTheme.colorScheme.primary,
+
+        focusedLabelColor =
+            if (dark)
+                MaterialTheme.colorScheme.tertiary
+            else
+                MaterialTheme.colorScheme.primary,
+
+        cursorColor =
+            if (dark)
+                MaterialTheme.colorScheme.tertiary
+            else
+                MaterialTheme.colorScheme.primary,
+
+        focusedLeadingIconColor =
+            if (dark)
+                MaterialTheme.colorScheme.tertiary
+            else
+                MaterialTheme.colorScheme.primary,
+
+        focusedTrailingIconColor =
+            if (dark)
+                MaterialTheme.colorScheme.tertiary
+            else
+                MaterialTheme.colorScheme.primary,
+
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp
+        )
     ) {
+
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+
                 Text(
                     text = providerName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
+
                 Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.tertiaryContainer
                 ) {
+
                     Text(
                         text = infoText,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
+                        modifier = Modifier.padding(
+                            horizontal = 14.dp,
+                            vertical = 8.dp
+                        ),
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        style = MaterialTheme.typography.labelMedium
                     )
                 }
             }
@@ -670,65 +1006,107 @@ private fun ProviderConfigCard(
                     apiKey = it
                     showSuccess = false
                 },
-                label = { Text("API Key") },
-                placeholder = { Text(keyPlaceholder) },
-                leadingIcon = { Icon(Icons.Default.Lock, null) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = textFieldColors,
+                label = {
+                    Text("API Key")
+                },
+                placeholder = {
+                    Text(keyPlaceholder)
+                },
+                leadingIcon = {
+                    Icon(Icons.Default.Lock, null)
+                },
                 trailingIcon = {
-                    IconButton(onClick = { showKey = !showKey }) {
+
+                    IconButton(
+                        onClick = {
+                            showKey = !showKey
+                        }
+                    ) {
+
                         Icon(
-                            if (showKey) Icons.Default.Close else Icons.Default.Info,
-                            "Toggle visibility"
+                            if (showKey)
+                                Icons.Default.Close
+                            else
+                                Icons.Default.Info,
+                            contentDescription = null
                         )
                     }
+
                 },
-                visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                visualTransformation =
+                    if (showKey)
+                        VisualTransformation.None
+                    else
+                        PasswordVisualTransformation()
             )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+
                 Button(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(18.dp),
                     onClick = {
+
                         onSaveKey(apiKey)
+
                         showSuccess = true
+
                         apiKey = "•".repeat(20)
+
                         showKey = false
                     },
-                    modifier = Modifier.weight(1f),
-                    enabled = apiKey.isNotEmpty() && !apiKey.startsWith("•")
+                    enabled = apiKey.isNotEmpty() &&
+                            !apiKey.startsWith("•")
                 ) {
-                    Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
+
+                    Icon(
+                        Icons.Default.Check,
+                        null,
+                        modifier = Modifier.size(18.dp)
+                    )
+
+                    Spacer(Modifier.width(6.dp))
+
                     Text("Save Key")
                 }
 
                 AnimatedVisibility(
-                    visible = showSuccess,
-                    enter = fadeIn() + scaleIn(),
-                    exit = fadeOut() + scaleOut()
+                    visible = showSuccess
                 ) {
+
                     Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.tertiaryContainer
                     ) {
+
                         Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(
+                                horizontal = 14.dp,
+                                vertical = 8.dp
+                            ),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+
                             Icon(
                                 Icons.Default.CheckCircle,
                                 null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
                                 modifier = Modifier.size(18.dp)
                             )
-                            Spacer(Modifier.width(4.dp))
+
+                            Spacer(Modifier.width(6.dp))
+
                             Text(
                                 "Saved",
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                style = MaterialTheme.typography.bodySmall
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                style = MaterialTheme.typography.labelMedium
                             )
                         }
                     }
@@ -746,25 +1124,39 @@ private fun SettingsSection(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 6.dp
+        )
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(
-                    icon,
-                    null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
+
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer
+                ) {
+
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier
+                            .padding(10.dp)
+                            .size(22.dp)
+                    )
+                }
+
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
@@ -772,7 +1164,11 @@ private fun SettingsSection(
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
-            Divider()
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
+
             content()
         }
     }
@@ -786,54 +1182,111 @@ private fun DropdownSetting(
     values: List<String>,
     onSelect: (String) -> Unit
 ) {
+
     var expanded by remember { mutableStateOf(false) }
 
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+
         Text(
-            label,
-            style = MaterialTheme.typography.bodyMedium,
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.SemiBold
         )
-        Box {
-            OutlinedButton(
-                onClick = { expanded = true },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurface
+
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                contentColor = MaterialTheme.colorScheme.onSurface
+            ),
+            border = ButtonDefaults.outlinedButtonBorder.copy(
+                brush = androidx.compose.ui.graphics.SolidColor(
+                    if (androidx.compose.foundation.isSystemInDarkTheme())
+                        MaterialTheme.colorScheme.tertiary
+                    else
+                        MaterialTheme.colorScheme.primary
                 )
+            )
+        ) {
+
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.tertiaryContainer
             ) {
-                Icon(icon, null, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(current, modifier = Modifier.weight(1f))
-                Icon(Icons.Default.ArrowDropDown, null)
+
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier
+                        .padding(6.dp)
+                        .size(18.dp)
+                )
             }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                values.forEach { v ->
-                    DropdownMenuItem(
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (v == current) {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                }
-                                Text(v)
+
+            Spacer(Modifier.width(12.dp))
+
+            Text(
+                text = current,
+                modifier = Modifier.weight(1f)
+            )
+
+            Icon(
+                Icons.Default.ArrowDropDown,
+                contentDescription = null
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = {
+                expanded = false
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ) {
+
+            values.forEach { value ->
+
+                DropdownMenuItem(
+
+                    text = {
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+
+                            if (value == current) {
+
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+
+                                Spacer(Modifier.width(8.dp))
                             }
-                        },
-                        onClick = {
-                            expanded = false
-                            onSelect(v)
+
+                            Text(
+                                value,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
-                    )
-                }
+                    },
+
+                    onClick = {
+
+                        expanded = false
+                        onSelect(value)
+
+                    }
+
+                )
             }
         }
     }

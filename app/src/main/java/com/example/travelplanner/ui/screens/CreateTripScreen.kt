@@ -1,11 +1,14 @@
 package com.example.travelplanner.ui.screens
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -109,20 +112,38 @@ fun CreateTripScreen(
         DatePickerDialog(
             onDismissRequest = { showStartDatePicker = false },
             confirmButton = {
-                TextButton(onClick = {
-                    startDatePickerState.selectedDateMillis?.let { selectedMs ->
-                        startMs = Dates.startOfDay(selectedMs)
-                        if (endMs < startMs) {
-                            endMs = Dates.addDays(startMs, 2)
+                TextButton(
+                    onClick = {
+                        startDatePickerState.selectedDateMillis?.let { selectedMs ->
+                            startMs = Dates.startOfDay(selectedMs)
+                            if (endMs < startMs) {
+                                endMs = Dates.addDays(startMs, 2)
+                            }
                         }
-                    }
-                    showStartDatePicker = false
-                }) {
+                        showStartDatePicker = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor =
+                            if (isSystemInDarkTheme())
+                                MaterialTheme.colorScheme.tertiary
+                            else
+                                MaterialTheme.colorScheme.primary
+                    )
+                ) {
                     Text("OK")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showStartDatePicker = false }) {
+                TextButton(
+                    onClick = { showStartDatePicker = false },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor =
+                            if (isSystemInDarkTheme())
+                                MaterialTheme.colorScheme.tertiary
+                            else
+                                MaterialTheme.colorScheme.primary
+                    )
+                ) {
                     Text("Cancel")
                 }
             }
@@ -135,15 +156,23 @@ fun CreateTripScreen(
         DatePickerDialog(
             onDismissRequest = { showEndDatePicker = false },
             confirmButton = {
-                TextButton(onClick = {
-                    endDatePickerState.selectedDateMillis?.let { selectedMs ->
-                        val newEndMs = Dates.startOfDay(selectedMs)
-                        if (newEndMs >= startMs) {
-                            endMs = newEndMs
+                TextButton(
+                    onClick = {
+                        endDatePickerState.selectedDateMillis?.let { selectedMs ->
+                            val newEndMs = Dates.startOfDay(selectedMs)
+                            if (newEndMs >= startMs) {
+                                endMs = newEndMs
+                            }
                         }
-                    }
-                    showEndDatePicker = false
-                }) {
+                        showEndDatePicker = false
+                    },colors = ButtonDefaults.textButtonColors(
+                        contentColor =
+                            if (isSystemInDarkTheme())
+                                MaterialTheme.colorScheme.tertiary
+                            else
+                                MaterialTheme.colorScheme.primary
+                    )
+                ) {
                     Text("OK")
                 }
             },
@@ -158,39 +187,166 @@ fun CreateTripScreen(
     }
 
     Scaffold(
+
+        containerColor = MaterialTheme.colorScheme.background,
+
         topBar = {
+
             TopAppBar(
-                title = { Text("Create Trip", maxLines = 1) },
+
+                title = {
+                    Text(
+                        "Create Trip",
+                        maxLines = 1
+                    )
+                },
+
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
                     }
-                }
+                },
+
+                colors = TopAppBarDefaults.topAppBarColors(
+
+                    containerColor = MaterialTheme.colorScheme.background,
+
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+
+                )
+
             )
+
         }
-    ) { pad ->
-        Column(modifier = Modifier.padding(pad).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
+    ) { pad ->
+        Column(
+
+            modifier = Modifier
+                .padding(pad)
+                .padding(20.dp),
+
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+
+        ) {
             OutlinedTextField(
+
                 modifier = Modifier.fillMaxWidth(),
+
                 value = title,
+
                 onValueChange = { title = it },
-                label = { Text("Title") }
+
+                label = {
+                    Text("Title")
+                },
+
+                shape = RoundedCornerShape(18.dp),
+
+                colors = OutlinedTextFieldDefaults.colors(
+
+                    focusedBorderColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.tertiary
+                        else
+                            MaterialTheme.colorScheme.primary,
+
+                    focusedLabelColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.tertiary
+                        else
+                            MaterialTheme.colorScheme.primary,
+
+                    cursorColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.tertiary
+                        else
+                            MaterialTheme.colorScheme.primary
+
+                )
+
             )
 
             OutlinedTextField(
+
                 modifier = Modifier.fillMaxWidth(),
+
                 value = destination,
+
                 onValueChange = { destination = it },
-                label = { Text("Destination") }
+
+                label = {
+                    Text("Destination")
+                },
+
+                shape = RoundedCornerShape(18.dp),
+
+                colors = OutlinedTextFieldDefaults.colors(
+
+                    focusedBorderColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.tertiary
+                        else
+                            MaterialTheme.colorScheme.primary,
+
+                    focusedLabelColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.tertiary
+                        else
+                            MaterialTheme.colorScheme.primary,
+                    cursorColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.tertiary
+                        else
+                            MaterialTheme.colorScheme.primary
+
+                )
+
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
+
                     modifier = Modifier.weight(1f),
+
                     value = budget.toString(),
-                    onValueChange = { budget = it.toDoubleOrNull() ?: budget },
-                    label = { Text("Budget cap") }
+
+                    onValueChange = {
+                        budget = it.toDoubleOrNull() ?: budget
+                    },
+
+                    label = {
+                        Text("Budget Cap")
+                    },
+
+                    shape = RoundedCornerShape(18.dp),
+
+                    colors = OutlinedTextFieldDefaults.colors(
+
+                        focusedBorderColor =
+                            if (isSystemInDarkTheme())
+                                MaterialTheme.colorScheme.tertiary
+                            else
+                                MaterialTheme.colorScheme.primary,
+
+                        focusedLabelColor =
+                            if (isSystemInDarkTheme())
+                                MaterialTheme.colorScheme.tertiary
+                            else
+                                MaterialTheme.colorScheme.primary,
+                        cursorColor =
+                            if (isSystemInDarkTheme())
+                                MaterialTheme.colorScheme.tertiary
+                            else
+                                MaterialTheme.colorScheme.primary,
+
+                    )
+
                 )
                 DropdownTripType(type = type, onChange = { type = it })
             }
@@ -199,13 +355,20 @@ fun CreateTripScreen(
 
             OutlinedCard(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { showStartDatePicker = true }
+                onClick = { showStartDatePicker = true },
+                colors = CardDefaults.outlinedCardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         "Start Date",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        color =
+                            if (isSystemInDarkTheme())
+                                MaterialTheme.colorScheme.tertiary
+                            else
+                                MaterialTheme.colorScheme.primary
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
@@ -217,13 +380,22 @@ fun CreateTripScreen(
 
             OutlinedCard(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { showEndDatePicker = true }
+                onClick = { showEndDatePicker = true },
+                colors = CardDefaults.outlinedCardColors(
+
+                    containerColor = MaterialTheme.colorScheme.surface
+
+                )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         "End Date",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        color =
+                            if (isSystemInDarkTheme())
+                                MaterialTheme.colorScheme.tertiary
+                            else
+                                MaterialTheme.colorScheme.primary
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
@@ -236,35 +408,130 @@ fun CreateTripScreen(
             Spacer(Modifier.height(10.dp))
 
             Button(
-                modifier = Modifier.fillMaxWidth(),
+
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+
+                shape = RoundedCornerShape(18.dp),
+
+                colors = ButtonDefaults.buttonColors(
+
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+
+                    contentColor = MaterialTheme.colorScheme.onTertiary
+
+                ),
+
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 6.dp
+                ),
+
                 onClick = {
+
                     scope.launch {
-                        val id = vm.createTrip(title, destination, startMs, endMs, type, budget)
+
+                        val id = vm.createTrip(
+                            title,
+                            destination,
+                            startMs,
+                            endMs,
+                            type,
+                            budget
+                        )
+
                         onCreated(id)
+
                     }
+
                 }
+
             ) {
-                Text("Create")
+
+                Text(
+
+                    "Create Trip",
+
+                    style = MaterialTheme.typography.titleMedium,
+
+                    fontWeight = FontWeight.SemiBold
+
+                )
+
             }
         }
     }
 }
 
 @Composable
-private fun DropdownTripType(type: TripType, onChange: (TripType) -> Unit) {
+private fun DropdownTripType(
+    type: TripType,
+    onChange: (TripType) -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
+
     Box {
-        OutlinedButton(onClick = { expanded = true }) { Text(type.name) }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            TripType.entries.forEach {
+
+        OutlinedButton(
+            onClick = { expanded = true },
+            shape = RoundedCornerShape(50.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+            ),
+            border = null
+        ) {
+
+            Text(
+                text = type.name,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+
+            TripType.entries.forEach { tripType ->
+
                 DropdownMenuItem(
-                    text = { Text(it.name) },
+
+                    text = {
+
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.tertiaryContainer
+                        ) {
+
+                            Text(
+                                text = tripType.name,
+                                modifier = Modifier.padding(
+                                    horizontal = 16.dp,
+                                    vertical = 8.dp
+                                ),
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                        }
+
+                    },
+
                     onClick = {
                         expanded = false
-                        onChange(it)
+                        onChange(tripType)
                     }
+
                 )
+
             }
+
         }
+
     }
 }

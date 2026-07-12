@@ -1,14 +1,17 @@
 package com.example.travelplanner.ui.screens
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -25,6 +28,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 
 // UI State
 sealed class SuggestionsUiState {
@@ -132,29 +137,82 @@ fun SuggestionsScreen(
     }
 
     Scaffold(
+
+        containerColor = MaterialTheme.colorScheme.background,
+
         topBar = {
+
             TopAppBar(
-                title = { Text("Trip Suggestions", maxLines = 1) },
+
+                title = {
+
+                    Text(
+                        "Trip Suggestions",
+                        fontWeight = FontWeight.Bold
+                    )
+
+                },
+
                 navigationIcon = {
+
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            null
+                        )
+
                     }
-                }
+
+                },
+
+                colors = TopAppBarDefaults.topAppBarColors(
+
+                    containerColor =
+                        MaterialTheme.colorScheme.background,
+
+                    titleContentColor =
+                        MaterialTheme.colorScheme.onBackground,
+
+                    navigationIconContentColor =
+                        MaterialTheme.colorScheme.onBackground
+
+                )
+
             )
+
         }
+
     ) { paddingValues ->
+
         when {
-            settings == null -> LoadingScreen(paddingValues)
-            else -> SuggestionsContent(
-                uiState = uiState,
-                selectedMonth = selectedMonth,
-                isOnlineMode = isOnlineMode,
-                onMonthChange = { selectedMonth = it },
-                onModeToggle = { isOnlineMode = it },
-                onCreateFromSuggestion = onCreateFromSuggestion,
-                paddingValues = paddingValues
-            )
+
+            settings == null ->
+
+                LoadingScreen(paddingValues)
+
+            else ->
+
+                SuggestionsContent(
+
+                    uiState = uiState,
+
+                    selectedMonth = selectedMonth,
+
+                    isOnlineMode = isOnlineMode,
+
+                    onMonthChange = { selectedMonth = it },
+
+                    onModeToggle = { isOnlineMode = it },
+
+                    onCreateFromSuggestion = onCreateFromSuggestion,
+
+                    paddingValues = paddingValues
+
+                )
+
         }
+
     }
 }
 
@@ -181,25 +239,49 @@ private fun SuggestionsContent(
     paddingValues: PaddingValues
 ) {
     Column(
+
         modifier = Modifier
+
+            .fillMaxSize()
+
             .padding(paddingValues)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+
+            .padding(20.dp),
+
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+
     ) {
+
         when (uiState) {
-            is SuggestionsUiState.Loading -> LoadingContent()
-            is SuggestionsUiState.Success -> SuccessContent(
-                state = uiState,
-                selectedMonth = selectedMonth,
-                isOnlineMode = isOnlineMode,
-                onMonthChange = onMonthChange,
-                onModeToggle = onModeToggle,
-                onCreateFromSuggestion = onCreateFromSuggestion
-            )
-            is SuggestionsUiState.Error -> ErrorContent(
-                error = uiState
-            )
+
+            is SuggestionsUiState.Loading ->
+
+                LoadingContent()
+
+            is SuggestionsUiState.Success ->
+
+                SuccessContent(
+
+                    state = uiState,
+
+                    selectedMonth = selectedMonth,
+
+                    isOnlineMode = isOnlineMode,
+
+                    onMonthChange = onMonthChange,
+
+                    onModeToggle = onModeToggle,
+
+                    onCreateFromSuggestion = onCreateFromSuggestion
+
+                )
+
+            is SuggestionsUiState.Error ->
+
+                ErrorContent(uiState)
+
         }
+
     }
 }
 
@@ -280,33 +362,114 @@ private fun ErrorContent(
 private fun BudgetOverviewCard(
     budgetInfo: BudgetInfo
 ) {
+
+    val dark = isSystemInDarkTheme()
+
     Card(
+
+        modifier = Modifier.fillMaxWidth(),
+
+        shape = RoundedCornerShape(30.dp),
+
+        elevation = CardDefaults.cardElevation(8.dp),
+
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+
+            containerColor =
+                if (dark)
+                    MaterialTheme.colorScheme.surface
+                else
+                    MaterialTheme.colorScheme.primary
+
         )
+
     ) {
+
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+
+            modifier = Modifier.padding(24.dp)
+
         ) {
+
+            val textColor =
+                if (dark)
+                    MaterialTheme.colorScheme.onSurface
+                else
+                    MaterialTheme.colorScheme.onPrimary
+
             Text(
+
                 "Budget Overview",
-                style = MaterialTheme.typography.titleMedium,
+
+                color = textColor,
+
+                style = MaterialTheme.typography.headlineSmall,
+
                 fontWeight = FontWeight.Bold
+
             )
+
+            Spacer(Modifier.height(20.dp))
 
             BudgetHeader(budgetInfo)
 
+            Spacer(Modifier.height(16.dp))
+
             LinearProgressIndicator(
+
                 progress = { budgetInfo.spentPercentage },
-                modifier = Modifier.fillMaxWidth()
+
+                modifier = Modifier.fillMaxWidth(),
+
+                color = MaterialTheme.colorScheme.tertiary,
+
+                trackColor = textColor.copy(.15f)
+
             )
 
+            Spacer(Modifier.height(16.dp))
+
             RemainingBudgetRow(budgetInfo)
+
         }
+
     }
+
 }
 
+@Composable
+private fun TripTypeBadge(
+    type: com.example.travelplanner.domain.TripType
+) {
+
+    val background =
+        MaterialTheme.colorScheme.tertiaryContainer
+
+    val textColor =
+        if (type == com.example.travelplanner.domain.TripType.DOMESTIC)
+            MaterialTheme.colorScheme.onPrimaryContainer
+        else
+            MaterialTheme.colorScheme.onTertiaryContainer
+
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = background
+    ) {
+
+        Text(
+            text = type.name,
+            modifier = Modifier.padding(
+                horizontal = 16.dp,
+                vertical = 8.dp
+            ),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onTertiaryContainer
+        )
+
+    }
+
+}
 @Composable
 private fun BudgetHeader(budgetInfo: BudgetInfo) {
     Row(
@@ -358,7 +521,7 @@ private fun RemainingBudgetRow(budgetInfo: BudgetInfo) {
             Money.format(budgetInfo.remaining),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.secondary
         )
     }
 }
@@ -371,20 +534,33 @@ private fun FilterControls(
     onModeToggle: (Boolean) -> Unit
 ) {
     Row(
+
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+
         verticalAlignment = Alignment.CenterVertically
+
     ) {
+
         MonthSelector(
-            selectedMonth = selectedMonth,
-            onMonthChange = onMonthChange,
-            modifier = Modifier.weight(1f)
+
+            selectedMonth,
+
+            onMonthChange,
+
+            Modifier.weight(1f)
+
         )
 
         ApiModeToggle(
-            isOnlineMode = isOnlineMode,
-            onModeToggle = onModeToggle
+
+            isOnlineMode,
+
+            onModeToggle
+
         )
+
     }
 }
 
@@ -394,32 +570,91 @@ private fun MonthSelector(
     onMonthChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var textValue by remember(selectedMonth) { mutableStateOf(selectedMonth.toString()) }
+
+    val dark = isSystemInDarkTheme()
 
     OutlinedTextField(
+
         modifier = modifier,
-        value = textValue,
-        onValueChange = { newValue ->
-            textValue = newValue
-            val month = newValue.toIntOrNull()?.coerceIn(1, 12)
-            if (month != null) {
-                onMonthChange(month)
-            }
-        },
-        label = { Text("Month (1-12)") },
+
+        value = selectedMonth.toString(),
+
+        onValueChange = {},
+
+        readOnly = true,
+
         singleLine = true,
-        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
-            imeAction = androidx.compose.ui.text.input.ImeAction.Done
+
+        label = {
+            Text("Month")
+        },
+
+        colors = OutlinedTextFieldDefaults.colors(
+
+            focusedBorderColor =
+                if (dark)
+                    MaterialTheme.colorScheme.tertiary
+                else
+                    MaterialTheme.colorScheme.primary,
+
+            focusedLabelColor =
+                if (dark)
+                    MaterialTheme.colorScheme.tertiary
+                else
+                    MaterialTheme.colorScheme.primary
+
         ),
-        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
-            onDone = {
-                val month = textValue.toIntOrNull()?.coerceIn(1, 12) ?: selectedMonth
-                textValue = month.toString()
-                onMonthChange(month)
+
+        trailingIcon = {
+
+            Column {
+
+                IconButton(
+
+                    onClick = {
+
+                        if (selectedMonth < 12)
+                            onMonthChange(selectedMonth + 1)
+
+                    },
+
+                    modifier = Modifier.size(22.dp)
+
+                ) {
+
+                    Icon(
+                        Icons.Default.KeyboardArrowUp,
+                        contentDescription = "Increase Month"
+                    )
+
+                }
+
+                IconButton(
+
+                    onClick = {
+
+                        if (selectedMonth > 1)
+                            onMonthChange(selectedMonth - 1)
+
+                    },
+
+                    modifier = Modifier.size(22.dp)
+
+                ) {
+
+                    Icon(
+                        Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Decrease Month"
+                    )
+
+                }
+
             }
-        )
+
+        }
+
     )
+
 }
 
 @Composable
@@ -427,17 +662,51 @@ private fun ApiModeToggle(
     isOnlineMode: Boolean,
     onModeToggle: (Boolean) -> Unit
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
         Switch(
+
             checked = isOnlineMode,
-            onCheckedChange = onModeToggle
+
+            onCheckedChange = onModeToggle,
+
+            colors = SwitchDefaults.colors(
+
+                checkedThumbColor = MaterialTheme.colorScheme.tertiary,
+
+                checkedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.40f),
+
+                checkedBorderColor = MaterialTheme.colorScheme.tertiary,
+
+                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+
+                uncheckedBorderColor = MaterialTheme.colorScheme.outline
+
+            )
+
         )
-        Spacer(Modifier.width(4.dp))
+
+        Spacer(Modifier.width(8.dp))
+
         Text(
-            if (isOnlineMode) "Online" else "Offline",
-            style = MaterialTheme.typography.bodySmall
+
+            text = if (isOnlineMode) "Online" else "Offline",
+
+            style = MaterialTheme.typography.bodyMedium,
+
+            fontWeight = FontWeight.SemiBold,
+
+            color = MaterialTheme.colorScheme.onSurface
+
         )
+
     }
+
 }
 
 @Composable
@@ -464,22 +733,31 @@ private fun SuggestionsList(
 
 @Composable
 private fun EmptySuggestionsCard() {
-    Card {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.Transparent
+    ) {
         Column(
             modifier = Modifier
                 .padding(24.dp)
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
             Text(
-                "No suggestions found",
-                style = MaterialTheme.typography.titleMedium
+                "No suggestions found?",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
             )
+
+            Spacer(Modifier.height(8.dp))
+
             Text(
                 "Try a different month or increase budget",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
         }
     }
 }
@@ -499,25 +777,28 @@ private fun SuggestionCard(
     selectedMonth: Int,
     onCreateClick: (String, String, Long, Long, com.example.travelplanner.domain.TripType, Double) -> Unit
 ) {
+    val dark = isSystemInDarkTheme()
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp), // Consistent rounded corners
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             SuggestionHeader(suggestion)
             BudgetRangeText(suggestion)
+
             if (suggestion.tags.isNotEmpty()) {
                 TagsRow(suggestion.tags)
             }
             BestMonthsText(suggestion.bestMonths)
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(8.dp))
 
             Button(
                 onClick = {
@@ -526,25 +807,48 @@ private fun SuggestionCard(
                     calendar.set(java.util.Calendar.YEAR, currentYear)
                     calendar.set(java.util.Calendar.MONTH, selectedMonth - 1)
                     calendar.set(java.util.Calendar.DAY_OF_MONTH, 1)
-
                     val startMs = Dates.startOfDay(calendar.timeInMillis)
                     val endMs = Dates.addDays(startMs, 5)
-
-                    onCreateClick(
-                        suggestion.destination,
-                        suggestion.destination,
-                        startMs,
-                        endMs,
-                        suggestion.type,
-                        suggestion.approxBudgetMin
-                    )
+                    onCreateClick( suggestion.destination, suggestion.destination, startMs, endMs, suggestion.type, suggestion.approxBudgetMin )
                 },
-                modifier = Modifier.fillMaxWidth()
+
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+
+                shape = RoundedCornerShape(16.dp),
+
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    contentColor = MaterialTheme.colorScheme.onTertiary
+                ),
+
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 6.dp
+                )
             ) {
-                Text("Create Trip from This Suggestion")
+
+                Text(
+                    "Create Trip",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+
             }
         }
     }
+}
+
+@Composable
+private fun BudgetRangeText(suggestion: TripSuggestion) {
+    val dark = isSystemInDarkTheme()
+    Text(
+        "Budget: ${Money.format(suggestion.approxBudgetMin)} - ${Money.format(suggestion.approxBudgetMax)}",
+        style = MaterialTheme.typography.bodyMedium,
+        // Use onSurfaceVariant in Dark Mode to avoid blue tint
+        color = if (dark) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.Medium
+    )
 }
 
 @Composable
@@ -564,32 +868,6 @@ private fun SuggestionHeader(suggestion: TripSuggestion) {
     }
 }
 
-@Composable
-private fun TripTypeBadge(type: com.example.travelplanner.domain.TripType) {
-    Surface(
-        color = if (type == com.example.travelplanner.domain.TripType.DOMESTIC)
-            MaterialTheme.colorScheme.secondaryContainer
-        else
-            MaterialTheme.colorScheme.tertiaryContainer,
-        shape = MaterialTheme.shapes.small
-    ) {
-        Text(
-            type.name,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelMedium
-        )
-    }
-}
-
-@Composable
-private fun BudgetRangeText(suggestion: TripSuggestion) {
-    Text(
-        "Budget: ${Money.format(suggestion.approxBudgetMin)} - ${Money.format(suggestion.approxBudgetMax)}",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.Medium
-    )
-}
 
 @Composable
 private fun TagsRow(tags: List<String>) {

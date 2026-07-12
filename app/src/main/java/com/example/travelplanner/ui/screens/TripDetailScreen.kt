@@ -4,16 +4,20 @@ import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -42,6 +46,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextDecoration
+
 
 data class TripDetailUiState(
     val trip: TripPlanEntity? = null,
@@ -433,289 +442,1024 @@ fun TripDetailScreen(
     onBack: () -> Unit,
     onEditDay: (String) -> Unit
 ) {
+
     val ctx = LocalContext.current
-    val vm: TripDetailViewModel = viewModel(factory = TripDetailVMFactory(tripId))
+
+    val vm: TripDetailViewModel =
+        viewModel(factory = TripDetailVMFactory(tripId))
+
     val state by vm.state.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val exportJsonLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        if (uri != null) vm.exportTripJson(ctx, uri)
-    }
+    val exportJsonLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/json")
+        ) { uri ->
+            uri?.let {
+                vm.exportTripJson(ctx, it)
+            }
+        }
 
-    val exportPdfLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/pdf")
-    ) { uri ->
-        if (uri != null) vm.exportTripPdf(ctx, uri)
-    }
+    val exportPdfLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/pdf")
+        ) { uri ->
+            uri?.let {
+                vm.exportTripPdf(ctx, it)
+            }
+        }
 
     LaunchedEffect(Unit) {
         vm.refreshTransport()
     }
 
     LaunchedEffect(state.message) {
-        val msg = state.message ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(msg)
-        vm.clearMessage()
+        state.message?.let {
+            snackbarHostState.showSnackbar(it)
+            vm.clearMessage()
+        }
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+
+        snackbarHost = {
+            SnackbarHost(snackbarHostState)
+        },
+
+        containerColor = MaterialTheme.colorScheme.background,
+
         topBar = {
+
             TopAppBar(
-                title = { Text(state.trip?.title ?: "Trip Detail", maxLines = 1) },
+
+                title = {
+
+                    Text(
+                        text = state.trip?.title ?: "Trip Details",
+                        maxLines = 1
+                    )
+
+                },
+
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+
+                    IconButton(
+                        onClick = onBack
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+
+                },
+
+                actions = {
+
+                    Text(
+                        text = "Generate",
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp)
+                            .clickable(enabled = !state.loading) {
+                                vm.generateItinerary()
+                            },
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Bold,
+                        textDecoration = TextDecoration.Underline,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Text(
+                        text = "AI",
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp)
+                            .clickable(enabled = !state.loading) {
+                                vm.addLLMEnrichment()
+                            },
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Bold,
+                        textDecoration = TextDecoration.Underline,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    IconButton(
+                        onClick = {
+                            exportPdfLauncher.launch("${state.trip?.title ?: "trip"}.pdf")
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.PictureAsPdf,
+                            contentDescription = "Export PDF"
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            exportJsonLauncher.launch("${state.trip?.title ?: "trip"}.json")
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = "Export JSON"
+                        )
                     }
                 },
-                actions = {
-                    TextButton(enabled = !state.loading, onClick = { vm.generateItinerary() }) {
-                        Text("Generate")
-                    }
-                    TextButton(enabled = !state.loading, onClick = { vm.addLLMEnrichment() }) {
-                        Text("Enrich")
-                    }
-                    TextButton(onClick = { exportPdfLauncher.launch("${state.trip?.title ?: "trip"}.pdf") }) {
-                        Text("PDF")
-                    }
-                    TextButton(onClick = { exportJsonLauncher.launch("${state.trip?.title ?: "trip"}.json") }) {
-                        Text("JSON")
-                    }
-                }
+
+                colors = TopAppBarDefaults.topAppBarColors(
+
+                    containerColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.tertiary
+                        else
+                            MaterialTheme.colorScheme.primary,
+
+                    titleContentColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.onTertiary
+                        else
+                            MaterialTheme.colorScheme.onPrimary,
+
+                    navigationIconContentColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.onTertiary
+                        else
+                            MaterialTheme.colorScheme.onPrimary,
+
+                    actionIconContentColor =
+                        if (isSystemInDarkTheme())
+                            MaterialTheme.colorScheme.onTertiary
+                        else
+                            MaterialTheme.colorScheme.onPrimary
+                )
+
             )
+
         }
+
     ) { pad ->
+
         val trip = state.trip
+
         if (trip == null) {
-            Box(Modifier.padding(pad).fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(pad),
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+
                 Text("Trip not found")
+
             }
+
             return@Scaffold
         }
 
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
+
             LazyColumn(
-                modifier = Modifier.padding(pad),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+
+                modifier = Modifier
+                    .padding(pad),
+
+                contentPadding = PaddingValues(20.dp),
+
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+
             ) {
-            item {
-                Text("${trip.destination} • ${trip.type.name}", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "${Dates.formatDate(trip.startDateEpochMs)} to ${Dates.formatDate(trip.endDateEpochMs)}",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    "Budget cap: ${Money.format(trip.budgetCap)} • Status: ${trip.status.name}",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
 
-            item {
-                ElevatedCard {
-                    Column(Modifier.padding(16.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Transport advisor", style = MaterialTheme.typography.titleSmall)
-                            TextButton(enabled = !state.loading, onClick = { vm.refreshTransport() }) { Text("Refresh") }
-                        }
-                        val rec = state.transport
-                        if (rec == null) {
-                            Text("No recommendation yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        } else {
-                            Text("From ${rec.from} to ${rec.to}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Distance: ${rec.distanceKm} km", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Recommended: ${rec.recommendedMode}", style = MaterialTheme.typography.titleSmall)
-                            Text(rec.reason, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
-
-            item {
-                ElevatedCard {
-                    Column(Modifier.padding(16.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Leave reminder", style = MaterialTheme.typography.titleSmall)
-                            TextButton(onClick = { vm.scheduleLeaveReminder(ctx) }) { Text("Schedule") }
-                        }
-                        Text("Set a reminder 14 days before the trip", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
-
-            item {
-                ElevatedCard {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Budget breakdown", style = MaterialTheme.typography.titleSmall)
-                        if (state.budget.isEmpty()) {
-                            Text("No budget breakdown yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        } else {
-                            state.budget.sortedBy { it.category.name }.forEach { b ->
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(b.category.name)
-                                    OutlinedTextField(
-                                        modifier = Modifier.width(160.dp),
-                                        value = b.planned.toString(),
-                                        onValueChange = {
-                                            val v = it.toDoubleOrNull()
-                                            if (v != null) vm.updateBudgetPlanned(b, v)
-                                        },
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        singleLine = true
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            item {
-                ElevatedCard {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Packing checklist", style = MaterialTheme.typography.titleSmall)
-                        if (state.packing.isEmpty()) {
-                            Text("No packing items yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        } else {
-                            state.packing.sortedBy { it.category }.forEach { p ->
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(p.title)
-                                    Checkbox(
-                                        checked = p.isChecked,
-                                        onCheckedChange = { vm.togglePacking(p) }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            item {
-                Text("Itinerary days", style = MaterialTheme.typography.titleSmall)
-            }
-
-            items(state.days.sortedBy { it.dateEpochMs }) { day ->
-                ElevatedCard {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Column {
-                                Text(Dates.formatFullDate(day.dateEpochMs), style = MaterialTheme.typography.titleSmall)
-                                Text("Area: ${day.cityArea}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            TextButton(onClick = { onEditDay(day.id) }) { Text("Edit") }
-                        }
-                        Text("Kid score: ${day.kidFriendlinessScore}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                        val activities = state.activitiesByDay[day.id] ?: emptyList()
-                        if (activities.isNotEmpty()) {
-                            Spacer(Modifier.height(8.dp))
-                            Text("Activities:", style = MaterialTheme.typography.labelMedium)
-
-                            activities.sortedBy { it.sortIndex }.forEach { activity ->
-                                val isLLMEnriched = activity.category == "llm"
-                                Card(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = if (isLLMEnriched)
-                                            MaterialTheme.colorScheme.tertiaryContainer
-                                        else
-                                            MaterialTheme.colorScheme.surfaceVariant
-                                    )
-                                ) {
-                                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                activity.timeSlot,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            if (isLLMEnriched) {
-                                                Surface(
-                                                    color = MaterialTheme.colorScheme.tertiary,
-                                                    shape = MaterialTheme.shapes.extraSmall
-                                                ) {
-                                                    Text(
-                                                        "AI ✨",
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        color = MaterialTheme.colorScheme.onTertiary
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        Text(
-                                            activity.title,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
-                                        )
-                                        if (activity.notes.isNotEmpty()) {
-                                            Text(
-                                                activity.notes,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-            if (state.loading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(pad)
-                        .clickable(enabled = false) { },
-                    contentAlignment = androidx.compose.ui.Alignment.Center
-                ) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                        modifier = Modifier.fillMaxSize()
-                    ) {}
+                item {
 
                     Card(
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+
+                        modifier = Modifier.fillMaxWidth(),
+
+                        shape = RoundedCornerShape(28.dp),
+
+                        colors = CardDefaults.cardColors(
+                            containerColor =
+                                MaterialTheme.colorScheme.surfaceContainer
+                        ),
+
+                        elevation = CardDefaults.cardElevation(
+                            defaultElevation = 6.dp
+                        )
+
                     ) {
+
                         Column(
-                            modifier = Modifier.padding(32.dp),
-                            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+
+                            modifier = Modifier.padding(24.dp),
+
+                            verticalArrangement =
+                                Arrangement.spacedBy(16.dp)
+
                         ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(48.dp)
-                            )
+
                             Text(
-                                "Enriching itinerary with AI...",
+                                text = trip.destination,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Text(
+                                trip.type.name.replace("_", " "),
                                 style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                "This may take a few seconds",
-                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+
+                            HorizontalDivider()
+
+                            Row(
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(10.dp)
+                            ) {
+
+                                Surface(
+
+                                    shape = RoundedCornerShape(50),
+
+                                    color =
+                                        if (isSystemInDarkTheme())
+                                            MaterialTheme.colorScheme.tertiaryContainer
+                                        else
+                                            MaterialTheme.colorScheme.primaryContainer
+
+                                ) {
+
+                                    Text(
+                                        Dates.formatDate(
+                                            trip.startDateEpochMs
+                                        ),
+                                        modifier = Modifier.padding(
+                                            horizontal = 18.dp,
+                                            vertical = 8.dp
+                                        ),
+                                        color =
+                                            if (isSystemInDarkTheme())
+                                                MaterialTheme.colorScheme.onTertiaryContainer
+                                            else
+                                                MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+
+                                }
+
+                                Surface(
+
+                                    shape = RoundedCornerShape(50),
+
+                                    color =
+                                        if (isSystemInDarkTheme())
+                                            MaterialTheme.colorScheme.tertiaryContainer
+                                        else
+                                            MaterialTheme.colorScheme.primaryContainer
+
+                                ) {
+
+                                    Text(
+                                        Dates.formatDate(
+                                            trip.endDateEpochMs
+                                        ),
+                                        modifier = Modifier.padding(
+                                            horizontal = 18.dp,
+                                            vertical = 8.dp
+                                        ),
+                                        color =
+                                            if (isSystemInDarkTheme())
+                                                MaterialTheme.colorScheme.onTertiaryContainer
+                                            else
+                                                MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+
+                                }
+
+                            }
+
+                            Text(
+                                text = "Budget",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+
+                            Text(
+                                text = Money.format(trip.budgetCap),
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Surface(
+
+                                shape = RoundedCornerShape(50),
+
+                                color =
+                                    if (isSystemInDarkTheme())
+                                        MaterialTheme.colorScheme.secondaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.primaryContainer
+
+                            ) {
+
+                                Text(
+
+                                    text = trip.status.name.replace("_", " "),
+
+                                    modifier = Modifier.padding(
+                                        horizontal = 18.dp,
+                                        vertical = 10.dp
+                                    ),
+
+                                    color =
+                                        if (isSystemInDarkTheme())
+                                            MaterialTheme.colorScheme.onSecondaryContainer
+                                        else
+                                            MaterialTheme.colorScheme.onPrimaryContainer,
+
+                                    fontWeight = FontWeight.Bold
+
+                                )
+
+                            }
+
                         }
+
                     }
+
                 }
+
+                item {
+
+                    ElevatedCard(
+
+                        shape = RoundedCornerShape(24.dp),
+
+                        colors = CardDefaults.elevatedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        )
+
+                    ) {
+
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+
+                                Column {
+
+                                    Text(
+                                        "Transport Advisor",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+
+                                    Text(
+                                        "Best travel recommendation",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+
+                                }
+
+                                FilledTonalButton(
+                                    enabled = !state.loading,
+                                    onClick = { vm.refreshTransport() }
+                                ) {
+                                    Text("Refresh")
+                                }
+
+                            }
+
+                            HorizontalDivider()
+
+                            val rec = state.transport
+
+                            if (rec == null) {
+
+                                Text(
+                                    "No recommendation available.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                            } else {
+
+                                Text(
+                                    "From",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+
+                                Text(
+                                    rec.from,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+
+                                Text(
+                                    "To",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+
+                                Text(
+                                    rec.to,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+
+                                HorizontalDivider()
+
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+
+                                    Surface(
+                                        shape = RoundedCornerShape(50),
+                                        color = MaterialTheme.colorScheme.primaryContainer
+                                    ) {
+
+                                        Text(
+                                            "${rec.distanceKm} km",
+                                            modifier = Modifier.padding(
+                                                horizontal = 16.dp,
+                                                vertical = 8.dp
+                                            ),
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+
+                                    }
+
+                                    Surface(
+                                        shape = RoundedCornerShape(50),
+                                        color = MaterialTheme.colorScheme.secondaryContainer
+                                    ) {
+
+                                        Text(
+                                            rec.recommendedMode,
+                                            modifier = Modifier.padding(
+                                                horizontal = 16.dp,
+                                                vertical = 8.dp
+                                            ),
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+
+                                    }
+
+                                }
+
+                                Text(
+                                    rec.reason,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                item {
+
+                    ElevatedCard(
+
+                        shape = RoundedCornerShape(24.dp),
+
+                        colors = CardDefaults.elevatedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        )
+
+                    ) {
+
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+
+                                Column {
+
+                                    Text(
+                                        "Leave Reminder",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+
+                                    Text(
+                                        "14 days before departure",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+
+                                }
+
+                                FilledTonalButton(
+                                    onClick = {
+                                        vm.scheduleLeaveReminder(ctx)
+                                    }
+                                ) {
+                                    Text("Schedule")
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                item {
+
+                    ElevatedCard(
+
+                        shape = RoundedCornerShape(24.dp),
+
+                        colors = CardDefaults.elevatedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        )
+
+                    ) {
+
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+
+                            Text(
+                                "Budget Breakdown",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            if (state.budget.isEmpty()) {
+
+                                Text(
+                                    "No budget added.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                            } else {
+
+                                state.budget
+                                    .sortedBy { it.category.name }
+                                    .forEach { b ->
+
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+
+                                            Text(
+                                                b.category.name.replace("_", " "),
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+
+                                            OutlinedTextField(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                value = b.planned.toString(),
+                                                onValueChange = {
+                                                    it.toDoubleOrNull()?.let { value ->
+                                                        vm.updateBudgetPlanned(b, value)
+                                                    }
+                                                },
+                                                keyboardOptions = KeyboardOptions(
+                                                    keyboardType = KeyboardType.Number
+                                                ),
+                                                singleLine = true
+                                            )
+
+                                        }
+
+                                    }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                item {
+
+                    ElevatedCard(
+
+                        shape = RoundedCornerShape(24.dp),
+
+                        colors = CardDefaults.elevatedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        )
+
+                    ) {
+
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+
+                            Text(
+                                "Packing Checklist",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            if (state.packing.isEmpty()) {
+
+                                Text(
+                                    "No packing items.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                            } else {
+
+                                state.packing
+                                    .sortedBy { it.category }
+                                    .forEach { item ->
+
+                                        Card(
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = MaterialTheme.colorScheme.surface
+                                            )
+                                        ) {
+
+                                            Row(
+
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(
+                                                        horizontal = 16.dp,
+                                                        vertical = 12.dp
+                                                    ),
+
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+
+                                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+
+                                            ) {
+
+                                                Column {
+
+                                                    Text(
+                                                        item.title,
+                                                        fontWeight = FontWeight.SemiBold
+                                                    )
+
+                                                    Text(
+                                                        text = item.category.name.replace("_", " "),
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+
+                                                }
+
+                                                Checkbox(
+                                                    checked = item.isChecked,
+                                                    onCheckedChange = {
+                                                        vm.togglePacking(item)
+                                                    }
+                                                )
+
+                                            }
+
+                                        }
+
+                                    }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                item {
+
+                    Text(
+                        "Trip Itinerary",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                }
+
+                items(
+                    state.days.sortedBy { it.dateEpochMs }
+                ) { day ->
+
+                    ElevatedCard(
+
+                        shape = RoundedCornerShape(24.dp),
+
+                        colors = CardDefaults.elevatedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        )
+
+                    ) {
+
+                        Column(
+
+                            modifier = Modifier.padding(20.dp),
+
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+
+                        ) {
+
+                            Row(
+
+                                modifier = Modifier.fillMaxWidth(),
+
+                                horizontalArrangement = Arrangement.SpaceBetween,
+
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+
+                            ) {
+
+                                Column {
+
+                                    Text(
+                                        Dates.formatFullDate(day.dateEpochMs),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+
+                                    Text(
+                                        day.cityArea,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+
+                                }
+
+                                FilledTonalButton(
+                                    onClick = {
+                                        onEditDay(day.id)
+                                    }
+                                ) {
+                                    Text("Edit")
+                                }
+
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = MaterialTheme.colorScheme.secondaryContainer
+                            ) {
+
+                                Text(
+                                    "Kid Friendly Score : ${day.kidFriendlinessScore}/10",
+                                    modifier = Modifier.padding(
+                                        horizontal = 16.dp,
+                                        vertical = 8.dp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+
+                            }
+
+                            val activities =
+                                state.activitiesByDay[day.id] ?: emptyList()
+
+                            if (activities.isNotEmpty()) {
+
+                                activities
+                                    .sortedBy { it.sortIndex }
+                                    .forEach { activity ->
+
+                                        val isLLMEnriched = activity.category == "llm"
+
+                                        ElevatedCard(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(20.dp),
+                                            colors = CardDefaults.elevatedCardColors(
+                                                containerColor =
+                                                    if (isLLMEnriched)
+                                                        MaterialTheme.colorScheme.tertiaryContainer
+                                                    else
+                                                        MaterialTheme.colorScheme.surface
+                                            )
+                                        ) {
+
+                                            Column(
+                                                Modifier.padding(18.dp),
+                                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+
+                                                Row(
+                                                    Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                                ) {
+
+                                                    Surface(
+                                                        shape = RoundedCornerShape(50),
+                                                        color = MaterialTheme.colorScheme.primaryContainer
+                                                    ) {
+                                                        Text(
+                                                            activity.timeSlot,
+                                                            modifier = Modifier.padding(
+                                                                horizontal = 12.dp,
+                                                                vertical = 6.dp
+                                                            ),
+                                                            style = MaterialTheme.typography.labelMedium,
+                                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                        )
+                                                    }
+
+                                                    if (isLLMEnriched) {
+
+                                                        Surface(
+                                                            shape = RoundedCornerShape(50),
+                                                            color = MaterialTheme.colorScheme.tertiary
+                                                        ) {
+
+                                                            Text(
+                                                                "AI Suggested",
+                                                                modifier = Modifier.padding(
+                                                                    horizontal = 12.dp,
+                                                                    vertical = 6.dp
+                                                                ),
+                                                                style = MaterialTheme.typography.labelMedium,
+                                                                color = MaterialTheme.colorScheme.onTertiary
+                                                            )
+
+                                                        }
+
+                                                    }
+
+                                                }
+
+                                                Text(
+                                                    activity.title,
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+
+                                                if (activity.notes.isNotBlank()) {
+
+                                                    Text(
+                                                        activity.notes,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+
+                                                }
+
+                                                HorizontalDivider()
+
+                                                Row(
+                                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                                ) {
+
+                                                    Surface(
+                                                        shape = RoundedCornerShape(50),
+                                                        color = MaterialTheme.colorScheme.secondaryContainer
+                                                    ) {
+                                                        Text(
+                                                            "₹ ${activity.estimatedCost.toInt()}",
+                                                            modifier = Modifier.padding(
+                                                                horizontal = 12.dp,
+                                                                vertical = 6.dp
+                                                            ),
+                                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                                        )
+                                                    }
+
+                                                    Surface(
+                                                        shape = RoundedCornerShape(50),
+                                                        color = MaterialTheme.colorScheme.secondaryContainer
+                                                    ) {
+                                                        Text(
+                                                            "${activity.commuteMinutes} min",
+                                                            modifier = Modifier.padding(
+                                                                horizontal = 12.dp,
+                                                                vertical = 6.dp
+                                                            ),
+                                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                                        )
+                                                    }
+
+                                                }
+
+                                            }
+
+                                        }
+
+                                    }
+
+                            } else {
+
+                                Text(
+
+                                    "No activities available.",
+
+                                    color =
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+
+                                )
+
+                            }
+                        }
+
+                    }
+
+                }
+
             }
+
+            if (state.loading) {
+
+                    Box(
+
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(pad)
+                            .clickable(enabled = false) {},
+
+                        contentAlignment = androidx.compose.ui.Alignment.Center
+
+                    ) {
+
+                        Surface(
+
+                            modifier = Modifier.fillMaxSize(),
+
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+
+                        ) {}
+
+                        Card(
+
+                            shape = RoundedCornerShape(28.dp),
+
+                            elevation = CardDefaults.cardElevation(
+                                defaultElevation = 12.dp
+                            ),
+
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                            )
+
+                        ) {
+
+                            Column(
+
+                                modifier = Modifier.padding(
+                                    horizontal = 36.dp,
+                                    vertical = 32.dp
+                                ),
+
+                                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+
+                                verticalArrangement = Arrangement.spacedBy(18.dp)
+
+                            ) {
+
+                                CircularProgressIndicator()
+
+                                Text(
+
+                                    "Enriching itinerary with AI...",
+
+                                    style = MaterialTheme.typography.titleLarge,
+
+                                    fontWeight = FontWeight.Bold
+
+                                )
+
+                                Text(
+
+                                    "This may take a few seconds",
+
+                                    style = MaterialTheme.typography.bodyMedium,
+
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+
+                                )
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
         }
+
     }
-}
+

@@ -120,5 +120,4 @@ object AppGraph {
             openAIClient = openAIClient
         )
     }
-    
 }
