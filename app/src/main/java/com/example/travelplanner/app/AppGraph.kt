@@ -1,6 +1,7 @@
 package com.example.travelplanner.app
 
 import android.content.Context
+import com.example.travelplanner.data.repo.AuthRepository
 import com.example.travelplanner.data.repo.SettingsRepository
 import com.example.travelplanner.data.repo.TripRepository
 import com.example.travelplanner.domain.usecase.*
@@ -39,6 +40,14 @@ object AppGraph {
 
     val settingsRepository: SettingsRepository by lazy {
         SettingsRepository(appContext)
+    }
+
+    val authRepository: AuthRepository by lazy {
+        AuthRepository(appContext)
+    }
+
+    val guideRepository: com.example.travelplanner.data.repo.GuideRepository by lazy {
+        com.example.travelplanner.data.repo.GuideRepository(appContext)
     }
 
     // ===== Domain Layer - Use Cases =====

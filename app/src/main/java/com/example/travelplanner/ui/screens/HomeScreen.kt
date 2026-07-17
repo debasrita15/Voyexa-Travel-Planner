@@ -4,7 +4,6 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -18,7 +17,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -27,6 +25,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelplanner.app.AppGraph
 import com.example.travelplanner.data.db.TripPlanEntity
+import com.example.travelplanner.data.prefs.AuthSessionData
 import com.example.travelplanner.domain.TripStatus
 import com.example.travelplanner.util.Dates
 import com.example.travelplanner.util.Money
@@ -46,11 +45,15 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onOpenSuggestions: () -> Unit,
     onOpenYearPlanner: () -> Unit,
-    onOpenTrip: (String) -> Unit
+    onOpenTrip: (String) -> Unit,
+    onLogout: () -> Unit,
+    onLogin: () -> Unit
 ) {
 
     val vm: HomeViewModel = viewModel()
     val trips by vm.trips.collectAsState()
+    val session by AppGraph.authRepository.observeSession()
+        .collectAsState(initial = AuthSessionData())
 
     val notifPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -103,15 +106,13 @@ fun HomeScreen(
             item {
 
                 HeroHeader(
-
+                    session = session,
                     onOpenSettings = onOpenSettings,
-
                     onOpenSuggestions = onOpenSuggestions,
-
                     onOpenYearPlanner = onOpenYearPlanner,
-
-                    onCreateTrip = onCreateTrip
-
+                    onCreateTrip = onCreateTrip,
+                    onLogout = onLogout,
+                    onLogin = onLogin
                 )
 
             }
@@ -175,10 +176,13 @@ fun HomeScreen(
 }
 @Composable
 private fun HeroHeader(
+    session: AuthSessionData,
     onOpenSettings: () -> Unit,
     onOpenSuggestions: () -> Unit,
     onOpenYearPlanner: () -> Unit,
-    onCreateTrip: () -> Unit
+    onCreateTrip: () -> Unit,
+    onLogout: () -> Unit,
+    onLogin: () -> Unit
 ) {
 
     val dark = isSystemInDarkTheme()
@@ -194,6 +198,18 @@ private fun HeroHeader(
             MaterialTheme.colorScheme.onSurface
         else
             MaterialTheme.colorScheme.onPrimary
+
+    val greeting = if (session.isLoggedIn) {
+        "👋 Hello, ${session.displayName}"
+    } else {
+        "👋 Hello Traveller"
+    }
+
+    val subtitleText = if (session.isLoggedIn) {
+        "Plan your next adventure as a ${session.role}"
+    } else {
+        "Plan your next adventure"
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -231,7 +247,7 @@ private fun HeroHeader(
                 ) {
 
                     Text(
-                        "👋 Hello Traveller",
+                        greeting,
                         color = heroText,
                         style = MaterialTheme.typography.titleMedium
                     )
@@ -255,30 +271,48 @@ private fun HeroHeader(
                     Spacer(Modifier.height(5.dp))
 
                     Text(
-                        "Plan your next adventure",
+                        subtitleText,
                         color = heroText.copy(.75f)
                     )
 
                 }
 
-                FilledIconButton(
-
-                    onClick = onOpenSettings,
-
-                    colors = IconButtonDefaults.filledIconButtonColors(
-
-                        containerColor = MaterialTheme.colorScheme.tertiary,
-
-                        contentColor = MaterialTheme.colorScheme.onTertiary
-
-                    )
-
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    if (session.isLoggedIn) {
+                        FilledIconButton(
+                            onClick = onLogout,
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        ) {
+                            Icon(Icons.Default.ExitToApp, contentDescription = "Sign Out")
+                        }
+                    } else {
+                        FilledIconButton(
+                            onClick = onLogin,
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.tertiary,
+                                contentColor = MaterialTheme.colorScheme.onTertiary
+                            )
+                        ) {
+                            Icon(Icons.Default.Login, contentDescription = "Sign In")
+                        }
+                    }
 
-                    Icon(Icons.Default.Settings, null)
-
+                    FilledIconButton(
+                        onClick = onOpenSettings,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiary,
+                            contentColor = MaterialTheme.colorScheme.onTertiary
+                        )
+                    ) {
+                        Icon(Icons.Default.Settings, null)
+                    }
                 }
-
             }
 
             Spacer(Modifier.height(15.dp))

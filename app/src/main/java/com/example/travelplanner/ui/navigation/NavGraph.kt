@@ -1,29 +1,218 @@
 package com.example.travelplanner.ui.navigation
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.*
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.example.travelplanner.app.AppGraph
+import com.example.travelplanner.data.prefs.AuthSessionData
 import com.example.travelplanner.ui.screens.*
+import com.example.travelplanner.ui.screens.auth.ForgotPasswordScreen
+import com.example.travelplanner.ui.screens.auth.LoginScreen
+import com.example.travelplanner.ui.screens.auth.RegisterScreen
+import com.example.travelplanner.ui.screens.guide.*
+import com.example.travelplanner.ui.viewmodel.auth.AuthViewModel
 import kotlinx.coroutines.launch
+
+private val authEnterTransition: EnterTransition =
+    fadeIn(tween(300)) + slideInHorizontally(tween(300)) { it / 3 }
+
+private val authExitTransition: ExitTransition =
+    fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { -it / 3 }
+
+private val authPopEnterTransition: EnterTransition =
+    fadeIn(tween(300)) + slideInHorizontally(tween(300)) { -it / 3 }
+
+private val authPopExitTransition: ExitTransition =
+    fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { it / 3 }
 
 @Composable
 fun NavGraph() {
     val nav = rememberNavController()
-    val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    NavHost(navController = nav, startDestination = Routes.HOME) {
+    val session by AppGraph.authRepository.observeSession()
+        .collectAsState(initial = AuthSessionData())
+
+    val startDestination = if (session.isLoggedIn) {
+        if (session.role == "Guide") Routes.GUIDE_DASHBOARD else Routes.HOME
+    } else {
+        Routes.HOME
+    }
+
+    NavHost(
+        navController = nav,
+        startDestination = startDestination
+    ) {
+
+        navigation(
+            startDestination = Routes.LOGIN,
+            route = Routes.AUTH_GRAPH,
+            enterTransition = { authEnterTransition },
+            exitTransition = { authExitTransition },
+            popEnterTransition = { authPopEnterTransition },
+            popExitTransition = { authPopExitTransition }
+        ) {
+            composable(Routes.LOGIN) { entry ->
+                val parentEntry = remember(entry) {
+                    nav.getBackStackEntry(Routes.AUTH_GRAPH)
+                }
+                val authViewModel: AuthViewModel = viewModel(parentEntry)
+
+                LoginScreen(
+                    viewModel = authViewModel,
+                    onLoginSuccess = { role ->
+                        val targetRoute = if (role == "Guide") Routes.GUIDE_DASHBOARD else Routes.HOME
+                        nav.navigate(targetRoute) {
+                            popUpTo(Routes.AUTH_GRAPH) { inclusive = true }
+                        }
+                    },
+                    onNavigateToRegister = { nav.navigate(Routes.REGISTER) },
+                    onNavigateToForgotPassword = { nav.navigate(Routes.FORGOT_PASSWORD) }
+                )
+            }
+
+            composable(Routes.REGISTER) { entry ->
+                val parentEntry = remember(entry) {
+                    nav.getBackStackEntry(Routes.AUTH_GRAPH)
+                }
+                val authViewModel: AuthViewModel = viewModel(parentEntry)
+
+                RegisterScreen(
+                    viewModel = authViewModel,
+                    onRegisterSuccess = { role ->
+                        val targetRoute = if (role == "Guide") Routes.GUIDE_DASHBOARD else Routes.HOME
+                        nav.navigate(targetRoute) {
+                            popUpTo(Routes.AUTH_GRAPH) { inclusive = true }
+                        }
+                    },
+                    onNavigateToLogin = { nav.popBackStack() }
+                )
+            }
+
+            composable(Routes.FORGOT_PASSWORD) { entry ->
+                val parentEntry = remember(entry) {
+                    nav.getBackStackEntry(Routes.AUTH_GRAPH)
+                }
+                val authViewModel: AuthViewModel = viewModel(parentEntry)
+
+                ForgotPasswordScreen(
+                    viewModel = authViewModel,
+                    onBack = { nav.popBackStack() }
+                )
+            }
+        }
 
         composable(Routes.HOME) {
             HomeScreen(
-                onCreateTrip = { nav.navigate(Routes.CREATE_TRIP) },
+                onCreateTrip = {
+                    if (session.isLoggedIn) {
+                        nav.navigate(Routes.CREATE_TRIP)
+                    } else {
+                        nav.navigate(Routes.AUTH_GRAPH)
+                    }
+                },
                 onOpenSettings = { nav.navigate(Routes.SETTINGS) },
                 onOpenSuggestions = { nav.navigate(Routes.SUGGESTIONS) },
                 onOpenYearPlanner = { nav.navigate(Routes.YEAR_PLANNER) },
-                onOpenTrip = { tripId -> nav.navigate(Routes.tripDetail(tripId)) }
+                onOpenTrip = { tripId -> nav.navigate(Routes.tripDetail(tripId)) },
+                onLogout = {
+                    scope.launch {
+                        AppGraph.authRepository.logout()
+                    }
+                },
+                onLogin = {
+                    nav.navigate(Routes.AUTH_GRAPH)
+                }
+            )
+        }
+
+        composable(Routes.GUIDE_DASHBOARD) {
+            GuideDashboardScreen(
+                onLogout = {
+                    scope.launch {
+                        AppGraph.authRepository.logout()
+                        nav.navigate(Routes.HOME) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                },
+                onNavigateToCreateTour = { nav.navigate(Routes.CREATE_TOUR) },
+                onNavigateToManageBookings = { nav.navigate(Routes.MANAGE_BOOKINGS) },
+                onNavigateToChat = { nav.navigate(Routes.CHAT) },
+                onNavigateToEarnings = { nav.navigate(Routes.EARNINGS) },
+                onNavigateToReviews = { nav.navigate(Routes.REVIEWS) },
+                onNavigateToAvailability = { nav.navigate(Routes.AVAILABILITY) },
+                onNavigateToProfile = { nav.navigate(Routes.GUIDE_PROFILE) },
+                onNavigateToSupport = { nav.navigate(Routes.SUPPORT) },
+                onNavigateToBookingDetails = { id -> nav.navigate(Routes.bookingDetails(id)) },
+                onNavigateToScheduleEditor = { nav.navigate(Routes.SCHEDULE_EDITOR) }
+            )
+        }
+
+        composable(Routes.CREATE_TOUR) {
+            CreateTourScreen(onBack = { nav.popBackStack() })
+        }
+
+        composable(Routes.MANAGE_BOOKINGS) {
+            ManageBookingsScreen(
+                onBack = { nav.popBackStack() },
+                onNavigateToBookingDetails = { id -> nav.navigate(Routes.bookingDetails(id)) }
+            )
+        }
+
+        composable(Routes.CHAT) {
+            ChatScreen(onBack = { nav.popBackStack() })
+        }
+
+        composable(Routes.EARNINGS) {
+            EarningsScreen(onBack = { nav.popBackStack() })
+        }
+
+        composable(Routes.REVIEWS) {
+            ReviewsScreen(onBack = { nav.popBackStack() })
+        }
+
+        composable(Routes.AVAILABILITY) {
+            AvailabilityScreen(onBack = { nav.popBackStack() })
+        }
+
+        composable(Routes.GUIDE_PROFILE) {
+            GuideProfileScreen(onBack = { nav.popBackStack() })
+        }
+
+        composable(Routes.SUPPORT) {
+            SupportScreen(onBack = { nav.popBackStack() })
+        }
+
+        composable(
+            route = Routes.BOOKING_DETAILS,
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+        ) { entry ->
+            val bookingId = entry.arguments?.getString("bookingId").orEmpty()
+            BookingDetailsScreen(
+                bookingId = bookingId,
+                onBack = { nav.popBackStack() },
+                onNavigateToChat = { nav.navigate(Routes.CHAT) },
+                onNavigateToAddReview = { id -> nav.navigate(Routes.addReview(id)) }
+            )
+        }
+
+        composable(Routes.SCHEDULE_EDITOR) {
+            ScheduleEditorScreen(onBack = { nav.popBackStack() })
+        }
+
+        composable(
+            route = Routes.ADD_REVIEW,
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+        ) { entry ->
+            val bookingId = entry.arguments?.getString("bookingId").orEmpty()
+            AddReviewScreen(
+                bookingId = bookingId,
+                onBack = { nav.popBackStack() }
             )
         }
 
@@ -47,7 +236,7 @@ fun NavGraph() {
                 onCreateFromSuggestion = { title, destination, startMs, endMs, type, budget ->
                     scope.launch {
                         try {
-                            val tripId = com.example.travelplanner.app.AppGraph.tripRepository.createTrip(
+                            val tripId = AppGraph.tripRepository.createTrip(
                                 title = title,
                                 destination = destination,
                                 startDateEpochMs = startMs,
@@ -71,8 +260,8 @@ fun NavGraph() {
         composable(
             route = Routes.TRIP_DETAIL,
             arguments = listOf(navArgument("tripId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val tripId = backStackEntry.arguments?.getString("tripId").orEmpty()
+        ) { entry ->
+            val tripId = entry.arguments?.getString("tripId").orEmpty()
             TripDetailScreen(
                 tripId = tripId,
                 onBack = { nav.popBackStack() },
@@ -83,8 +272,8 @@ fun NavGraph() {
         composable(
             route = Routes.DAY_EDITOR,
             arguments = listOf(navArgument("dayId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val dayId = backStackEntry.arguments?.getString("dayId").orEmpty()
+        ) { entry ->
+            val dayId = entry.arguments?.getString("dayId").orEmpty()
             DayEditorScreen(
                 dayId = dayId,
                 onBack = { nav.popBackStack() }
