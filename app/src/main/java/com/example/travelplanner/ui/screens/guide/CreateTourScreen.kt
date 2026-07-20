@@ -208,7 +208,7 @@ fun CreateTourScreen(
                             OutlinedTextField(
                                 value = price,
                                 onValueChange = { price = it },
-                                label = { Text("Price per Person ($)") },
+                                label = { Text("Price per Person (₹)") },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(12.dp)
                             )

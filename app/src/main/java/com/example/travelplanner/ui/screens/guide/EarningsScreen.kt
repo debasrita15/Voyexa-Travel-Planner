@@ -91,7 +91,7 @@ fun EarningsScreen(
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = "$${earnings.withdrawableBalance.toInt()}",
+                            text = "₹${earnings.withdrawableBalance.toInt()}",
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onPrimary
@@ -147,14 +147,14 @@ fun EarningsScreen(
             // Stat Cards Breakdown
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    EarningsStatCard("Today", "$${earnings.todayEarnings.toInt()}", Modifier.weight(1f))
-                    EarningsStatCard("This Week", "$${earnings.weeklyEarnings.toInt()}", Modifier.weight(1f))
+                    EarningsStatCard("Today", "₹${earnings.todayEarnings.toInt()}", Modifier.weight(1f))
+                    EarningsStatCard("This Week", "₹${earnings.weeklyEarnings.toInt()}", Modifier.weight(1f))
                 }
             }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    EarningsStatCard("This Month", "$${earnings.monthlyEarnings.toInt()}", Modifier.weight(1f))
-                    EarningsStatCard("Total Earned", "$${earnings.totalEarnings.toInt()}", Modifier.weight(1f))
+                    EarningsStatCard("This Month", "₹${earnings.monthlyEarnings.toInt()}", Modifier.weight(1f))
+                    EarningsStatCard("Total Earned", "₹${earnings.totalEarnings.toInt()}", Modifier.weight(1f))
                 }
             }
 
@@ -174,7 +174,7 @@ fun EarningsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("Voyexa Commission (10%)", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("-$${(earnings.totalEarnings * earnings.commissionRate).toInt()}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                            Text("-₹${(earnings.totalEarnings * earnings.commissionRate).toInt()}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                         }
                         Spacer(Modifier.height(8.dp))
                         Row(
@@ -217,7 +217,7 @@ fun EarningsScreen(
                             Text("${tx.date} • ${tx.id}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Text(
-                            text = "+$${tx.amount.toInt()}",
+                            text = "+₹${tx.amount.toInt()}",
                             fontWeight = FontWeight.ExtraBold,
                             color = Color(0xFF10B981)
                         )

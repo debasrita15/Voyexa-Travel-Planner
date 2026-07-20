@@ -37,10 +37,35 @@ fun NavGraph() {
     val session by AppGraph.authRepository.observeSession()
         .collectAsState(initial = AuthSessionData())
 
+    // Reactively redirect based on session changes (handles logout from any role)
+    LaunchedEffect(session.isLoggedIn, session.role) {
+        val currentRoute = nav.currentBackStackEntry?.destination?.route
+        if (!session.isLoggedIn) {
+            // User logged out — always go to login
+            if (currentRoute != Routes.LOGIN && currentRoute != Routes.REGISTER && currentRoute != Routes.FORGOT_PASSWORD) {
+                nav.navigate(Routes.AUTH_GRAPH) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        } else {
+            // User just logged in — navigate to their role's home if currently on auth screens
+            val onAuthScreen = currentRoute == Routes.LOGIN ||
+                currentRoute == Routes.REGISTER ||
+                currentRoute == Routes.FORGOT_PASSWORD ||
+                currentRoute == null
+            if (onAuthScreen) {
+                val target = if (session.role == "Guide") Routes.GUIDE_DASHBOARD else Routes.HOME
+                nav.navigate(target) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        }
+    }
+
     val startDestination = if (session.isLoggedIn) {
         if (session.role == "Guide") Routes.GUIDE_DASHBOARD else Routes.HOME
     } else {
-        Routes.HOME
+        Routes.AUTH_GRAPH
     }
 
     NavHost(
@@ -135,9 +160,7 @@ fun NavGraph() {
                 onLogout = {
                     scope.launch {
                         AppGraph.authRepository.logout()
-                        nav.navigate(Routes.HOME) {
-                            popUpTo(0) { inclusive = true }
-                        }
+                        // LaunchedEffect above will handle navigation to AUTH_GRAPH
                     }
                 },
                 onNavigateToCreateTour = { nav.navigate(Routes.CREATE_TOUR) },

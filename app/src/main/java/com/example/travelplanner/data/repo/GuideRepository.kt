@@ -355,6 +355,11 @@ class GuideRepository(context: Context) {
         }
     }
 
+    suspend fun requestGuide(booking: BookingItem) {
+        val currentList = _bookings.value
+        _bookings.value = listOf(booking) + currentList
+    }
+
     suspend fun updateProfile(bio: String, name: String, languages: List<String>) {
         val currentProfile = _profile.value
         _profile.value = currentProfile.copy(bio = bio, name = name, languages = languages)

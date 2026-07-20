@@ -1,8 +1,12 @@
 package com.example.travelplanner.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,8 +19,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -27,6 +34,7 @@ import com.example.travelplanner.data.prefs.AuthSessionData
 import com.example.travelplanner.data.repo.*
 import com.example.travelplanner.ui.viewmodel.guide.GuideDashboardViewModel
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -56,9 +64,16 @@ fun GuideDashboardScreen(
     val earnings by viewModel.earnings.collectAsState()
     val profile by viewModel.profile.collectAsState()
 
-    // Filter active upcoming bookings (pending or confirmed)
-    val upcomingBookings = remember(bookings) {
-        bookings.filter { it.status == "Pending" || it.status == "Confirmed" }
+    var selectedFilter by remember { mutableStateOf("All") }
+
+    // Filter active upcoming bookings (pending or confirmed) dynamically
+    val upcomingBookings = remember(bookings, selectedFilter) {
+        val baseList = bookings.filter { it.status == "Pending" || it.status == "Confirmed" }
+        when (selectedFilter) {
+            "Confirmed" -> baseList.filter { it.status == "Confirmed" }
+            "Pending" -> baseList.filter { it.status == "Pending" }
+            else -> baseList
+        }
     }
 
     val reviews = remember {
@@ -160,7 +175,38 @@ fun GuideDashboardScreen(
 
             // 6. Upcoming Bookings
             item {
-                SectionTitle("Upcoming Bookings")
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SectionTitle("Upcoming Bookings")
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        listOf("All", "Confirmed", "Pending").forEach { filter ->
+                            val isSelected = selectedFilter == filter
+                            val containerColor by animateColorAsState(
+                                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                label = "chipBg"
+                            )
+                            val contentColor by animateColorAsState(
+                                targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                label = "chipText"
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = containerColor,
+                                modifier = Modifier.bounceClick { selectedFilter = filter }
+                            ) {
+                                Text(
+                                    text = filter,
+                                    color = contentColor,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
             if (upcomingBookings.isEmpty()) {
                 item {
@@ -180,12 +226,14 @@ fun GuideDashboardScreen(
                     }
                 }
             } else {
-                items(upcomingBookings) { booking ->
-                    BookingCard(
-                        booking = booking,
-                        onClick = { onNavigateToBookingDetails(booking.id) },
-                        onMessage = onNavigateToChat
-                    )
+                items(upcomingBookings, key = { it.id }) { booking ->
+                    Box(modifier = Modifier.animateItem()) {
+                        BookingCard(
+                            booking = booking,
+                            onClick = { onNavigateToBookingDetails(booking.id) },
+                            onMessage = onNavigateToChat
+                        )
+                    }
                 }
             }
 
@@ -226,13 +274,64 @@ private fun GuideHeader(
     onLogout: () -> Unit
 ) {
     val dark = isSystemInDarkTheme()
-    val heroColor = if (dark) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary
-    val heroText = if (dark) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary
+    
+    // Premium gradient background for light and dark modes
+    val gradientBrush = remember(dark) {
+        if (dark) {
+            Brush.linearGradient(
+                colors = listOf(
+                    Color(0xFF221C38), // Rich Dark Purple-Navy
+                    Color(0xFF1E293B)  // Dark Slate
+                )
+            )
+        } else {
+            Brush.linearGradient(
+                colors = listOf(
+                    Color(0xFF1E3A8A), // BluePrimary
+                    Color(0xFF0F766E)  // TealSecondary Darker variant
+                )
+            )
+        }
+    }
+    val heroText = Color.White
 
     val formattedDate = remember {
         val sdf = SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault())
         sdf.format(Date())
     }
+
+    // Dynamic greeting and icons based on the current hour of day
+    val (greeting, greetingIcon) = remember {
+        val calendar = Calendar.getInstance()
+        val hour = calendar.get(Calendar.HOUR_OF_DAY)
+        when (hour) {
+            in 5..11 -> "Good Morning" to Icons.Default.WbSunny
+            in 12..16 -> "Good Afternoon" to Icons.Default.WbSunny
+            in 17..20 -> "Good Evening" to Icons.Default.WbTwilight
+            else -> "Good Night" to Icons.Default.NightsStay
+        }
+    }
+
+    val iconColor = remember(greetingIcon) {
+        if (greetingIcon == Icons.Default.NightsStay) Color(0xFF93C5FD) else Color(0xFFFCD34D)
+    }
+
+    // Toggle color animations
+    val toggleBgColor by animateColorAsState(
+        targetValue = if (isOnline) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+        animationSpec = tween(300),
+        label = "toggleBgColor"
+    )
+    val toggleTextColor by animateColorAsState(
+        targetValue = if (isOnline) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(300),
+        label = "toggleTextColor"
+    )
+    val indicatorColor by animateColorAsState(
+        targetValue = if (isOnline) Color(0xFF10B981) else Color(0xFF94A3B8),
+        animationSpec = tween(300),
+        label = "indicatorColor"
+    )
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -241,11 +340,13 @@ private fun GuideHeader(
             width = if (dark) 1.dp else 0.dp,
             color = if (dark) MaterialTheme.colorScheme.primary.copy(.35f) else Color.Transparent
         ),
-        colors = CardDefaults.cardColors(containerColor = heroColor),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
     ) {
         Column(
-            modifier = Modifier.padding(24.dp)
+            modifier = Modifier
+                .background(brush = gradientBrush)
+                .padding(24.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -274,11 +375,20 @@ private fun GuideHeader(
                 Spacer(Modifier.width(16.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Welcome back, Guide",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = heroText.copy(alpha = 0.7f)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = greetingIcon,
+                            contentDescription = null,
+                            tint = iconColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = greeting,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = heroText.copy(alpha = 0.7f)
+                        )
+                    }
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = if (session.displayName.isNotBlank()) session.displayName else "Partner",
@@ -290,6 +400,7 @@ private fun GuideHeader(
 
                 FilledIconButton(
                     onClick = onLogout,
+                    modifier = Modifier.bounceClick(onClick = onLogout),
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer,
                         contentColor = MaterialTheme.colorScheme.onErrorContainer
@@ -325,10 +436,10 @@ private fun GuideHeader(
                 }
 
                 Surface(
-                    onClick = onToggleOnline,
                     shape = RoundedCornerShape(50),
-                    color = if (isOnline) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                    border = BorderStroke(1.dp, if (isOnline) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline)
+                    color = toggleBgColor,
+                    border = BorderStroke(1.dp, if (isOnline) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline),
+                    modifier = Modifier.bounceClick(onClick = onToggleOnline)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
@@ -337,14 +448,14 @@ private fun GuideHeader(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = if (isOnline) Color(0xFF10B981) else Color(0xFF94A3B8),
+                            color = indicatorColor,
                             modifier = Modifier.size(8.dp)
                         ) {}
                         Text(
                             text = if (isOnline) "Online" else "Offline",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = if (isOnline) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = toggleTextColor
                         )
                     }
                 }
@@ -391,7 +502,7 @@ private fun StatsGrid(
             )
             StatCard(
                 icon = Icons.Default.Payments,
-                value = "$${earnings.totalEarnings.toInt()}",
+                value = "₹${earnings.totalEarnings.toInt()}",
                 title = "Total Earnings",
                 modifier = Modifier.weight(1f),
                 tint = MaterialTheme.colorScheme.tertiary,
@@ -410,10 +521,14 @@ private fun StatCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val dark = isSystemInDarkTheme()
     Card(
-        onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.bounceClick(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
+        border = BorderStroke(
+            width = if (dark) 1.dp else 0.dp,
+            color = if (dark) tint.copy(alpha = 0.25f) else Color.Transparent
+        ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
@@ -455,10 +570,18 @@ private fun ScheduleCard(
     tour: TourScheduleItem,
     onClick: () -> Unit
 ) {
+    var isExpanded by remember { mutableStateOf(false) }
+    val dark = isSystemInDarkTheme()
+
     Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .bounceClick { isExpanded = !isExpanded },
         shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(
+            width = if (dark) 1.dp else 0.dp,
+            color = if (dark) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent
+        ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
@@ -468,23 +591,41 @@ private fun ScheduleCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = tour.destination,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = tour.status,
-                        style = MaterialTheme.typography.labelMedium,
+                        text = tour.destination,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            text = tour.status,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = onClick,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Schedule",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
 
@@ -496,6 +637,87 @@ private fun ScheduleCard(
                 DetailItem(icon = Icons.Default.Schedule, label = "Time", value = tour.time)
                 DetailItem(icon = Icons.Default.Place, label = "Meeting Point", value = tour.meetingPoint)
                 DetailItem(icon = Icons.Default.People, label = "Travellers", value = "${tour.travellersCount} Confirmed")
+            }
+
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(animationSpec = tween(300)) + fadeIn(),
+                exit = shrinkVertically(animationSpec = tween(300)) + fadeOut()
+            ) {
+                Column(modifier = Modifier.padding(top = 16.dp)) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = "Itinerary Timeline",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    if (tour.activities.isEmpty()) {
+                        Text(
+                            text = "No stops detailed for this tour.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            tour.activities.forEachIndexed { index, activity ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.width(24.dp)
+                                    ) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(12.dp)
+                                        ) {}
+                                        if (index < tour.activities.size - 1) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(2.dp)
+                                                    .height(28.dp)
+                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                                            )
+                                        }
+                                    }
+                                    Spacer(Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = activity.title,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = activity.time,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.secondary
+                                            )
+                                        }
+                                        if (activity.notes.isNotBlank()) {
+                                            Spacer(Modifier.height(2.dp))
+                                            Text(
+                                                text = activity.notes,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -546,10 +768,14 @@ private fun BookingCard(
     onClick: () -> Unit,
     onMessage: () -> Unit
 ) {
+    val dark = isSystemInDarkTheme()
     Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().bounceClick(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
+        border = BorderStroke(
+            width = if (dark) 1.dp else 0.dp,
+            color = if (dark) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent
+        ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
@@ -667,10 +893,14 @@ private fun QuickActionCard(
     item: QuickActionItem,
     modifier: Modifier = Modifier
 ) {
+    val dark = isSystemInDarkTheme()
     Card(
-        onClick = item.onClick,
-        modifier = modifier,
+        modifier = modifier.bounceClick(onClick = item.onClick),
         shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(
+            width = if (dark) 1.dp else 0.dp,
+            color = if (dark) item.color.copy(alpha = 0.25f) else Color.Transparent
+        ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -713,10 +943,24 @@ private fun EarningsCard(
     earnings: EarningsData,
     onClick: () -> Unit
 ) {
+    var targetProgress by remember { mutableStateOf(0f) }
+    val progress by animateFloatAsState(
+        targetValue = targetProgress,
+        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+        label = "earningsProgress"
+    )
+    LaunchedEffect(earnings.monthlyEarnings) {
+        targetProgress = (earnings.monthlyEarnings / 5000.0).coerceIn(0.0, 1.0).toFloat()
+    }
+    val dark = isSystemInDarkTheme()
+
     Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().bounceClick(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
+        border = BorderStroke(
+            width = if (dark) 1.dp else 0.dp,
+            color = if (dark) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent
+        ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
@@ -734,14 +978,14 @@ private fun EarningsCard(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "$${earnings.monthlyEarnings.toInt()} earned",
+                        text = "₹${earnings.monthlyEarnings.toInt()} earned",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Text(
-                    text = "Goal: $5,000",
+                    text = "Goal: ₹5,000",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -749,9 +993,6 @@ private fun EarningsCard(
             }
 
             Spacer(Modifier.height(14.dp))
-            val progress = remember(earnings.monthlyEarnings) {
-                (earnings.monthlyEarnings / 5000.0).coerceIn(0.0, 1.0).toFloat()
-            }
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
@@ -768,7 +1009,7 @@ private fun EarningsCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Today's Earnings: +$${earnings.todayEarnings.toInt()}",
+                    text = "Today's Earnings: +₹${earnings.todayEarnings.toInt()}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF10B981)
@@ -788,10 +1029,14 @@ private fun ReviewCard(
     review: ReviewItem,
     onClick: () -> Unit
 ) {
+    val dark = isSystemInDarkTheme()
     Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().bounceClick(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
+        border = BorderStroke(
+            width = if (dark) 1.dp else 0.dp,
+            color = if (dark) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent
+        ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -904,3 +1149,24 @@ data class QuickActionItem(
     val color: Color,
     val onClick: () -> Unit
 )
+
+fun Modifier.bounceClick(onClick: () -> Unit): Modifier = composed {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = tween(durationMillis = 100, easing = LinearEasing),
+        label = "bounceScale"
+    )
+    this
+        .graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
+        .clickable(
+            interactionSource = interactionSource,
+            indication = androidx.compose.foundation.LocalIndication.current,
+            onClick = onClick
+        )
+}
+
