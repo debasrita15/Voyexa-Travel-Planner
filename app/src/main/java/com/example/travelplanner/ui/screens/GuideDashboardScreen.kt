@@ -111,6 +111,7 @@ fun GuideDashboardScreen(
             item {
                 GuideHeader(
                     session = session,
+                    profile = profile,
                     isOnline = isOnline,
                     onToggleOnline = { isOnline = !isOnline },
                     onLogout = onLogout
@@ -269,6 +270,7 @@ private fun SectionTitle(title: String) {
 @Composable
 private fun GuideHeader(
     session: AuthSessionData,
+    profile: GuideProfileData,
     isOnline: Boolean,
     onToggleOnline: () -> Unit,
     onLogout: () -> Unit
@@ -352,14 +354,16 @@ private fun GuideHeader(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Display initials preferring profile.name, falling back to session.displayName
+                val displayName = profile.name.ifBlank { session.displayName }
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.tertiaryContainer,
                     modifier = Modifier.size(56.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        val initials = if (session.displayName.isNotBlank()) {
-                            session.displayName.take(2).uppercase()
+                        val initials = if (displayName.isNotBlank()) {
+                            displayName.take(2).uppercase()
                         } else {
                             "GD"
                         }
@@ -391,7 +395,7 @@ private fun GuideHeader(
                     }
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = if (session.displayName.isNotBlank()) session.displayName else "Partner",
+                        text = displayName.ifBlank { "Partner" },
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = heroText

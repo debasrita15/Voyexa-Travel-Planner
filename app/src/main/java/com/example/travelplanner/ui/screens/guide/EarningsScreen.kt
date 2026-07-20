@@ -44,17 +44,9 @@ fun EarningsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Earnings Report", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
+                { Text("Earnings Report", fontWeight = FontWeight.Bold) }, navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        // Action to export PDF/Excel
-                    }) {
-                        Icon(Icons.Default.Download, contentDescription = "Export")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

@@ -36,7 +36,9 @@ fun GuideProfileScreen(
     var editLanguages by remember { mutableStateOf("") }
 
     LaunchedEffect(profile) {
-        if (profile.name.isNotBlank() && editName.isEmpty()) {
+        // Always sync edit fields from the latest saved profile state,
+        // but only when we are NOT actively editing (to avoid clobbering in-progress edits).
+        if (!isEditing && profile.name.isNotBlank()) {
             editName = profile.name
             editBio = profile.bio
             editLanguages = profile.languages.joinToString(", ")
