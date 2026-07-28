@@ -15,8 +15,8 @@ import com.example.travelplanner.util.RoomConverters
         TripBudgetItemEntity::class,
         PackingItemEntity::class
     ],
-    version = 1,
-    exportSchema = true
+    version = 2,
+    exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -31,7 +31,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "travel_planner.db"
-                ).build()
+                ).fallbackToDestructiveMigration().build()
                 INSTANCE = db
                 db
             }

@@ -145,12 +145,10 @@ fun SuggestionsScreen(
             TopAppBar(
 
                 title = {
-
                     Text(
                         "Trip Suggestions",
                         fontWeight = FontWeight.Bold
                     )
-
                 },
 
                 navigationIcon = {
@@ -570,91 +568,73 @@ private fun MonthSelector(
     onMonthChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-
     val dark = isSystemInDarkTheme()
+    val monthNames = listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+    val currentMonthName = monthNames.getOrElse(selectedMonth - 1) { "January" }
 
     OutlinedTextField(
-
         modifier = modifier,
-
-        value = selectedMonth.toString(),
-
+        value = currentMonthName,
         onValueChange = {},
-
         readOnly = true,
-
         singleLine = true,
-
         label = {
             Text("Month")
         },
-
         colors = OutlinedTextFieldDefaults.colors(
-
             focusedBorderColor =
                 if (dark)
                     MaterialTheme.colorScheme.tertiary
                 else
                     MaterialTheme.colorScheme.primary,
-
             focusedLabelColor =
                 if (dark)
                     MaterialTheme.colorScheme.tertiary
                 else
                     MaterialTheme.colorScheme.primary
-
         ),
-
         trailingIcon = {
-
             Column {
-
                 IconButton(
-
                     onClick = {
-
                         if (selectedMonth < 12)
                             onMonthChange(selectedMonth + 1)
-
                     },
-
                     modifier = Modifier.size(22.dp)
-
                 ) {
-
                     Icon(
                         Icons.Default.KeyboardArrowUp,
                         contentDescription = "Increase Month"
                     )
-
                 }
 
                 IconButton(
-
                     onClick = {
-
                         if (selectedMonth > 1)
                             onMonthChange(selectedMonth - 1)
-
                     },
-
                     modifier = Modifier.size(22.dp)
-
                 ) {
-
                     Icon(
                         Icons.Default.KeyboardArrowDown,
                         contentDescription = "Decrease Month"
                     )
-
                 }
-
             }
-
         }
-
     )
+}
 
+@Composable
+private fun BestMonthsText(bestMonths: List<Int>) {
+    val monthNames = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    val monthNamesStr = bestMonths.take(6).mapNotNull { m -> monthNames.getOrNull(m - 1) }.joinToString(", ")
+
+    Text(
+        "Best months: $monthNamesStr",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }
 
 @Composable
@@ -890,13 +870,4 @@ private fun TagChip(tag: String) {
             style = MaterialTheme.typography.labelSmall
         )
     }
-}
-
-@Composable
-private fun BestMonthsText(bestMonths: List<Int>) {
-    Text(
-        "Best months: ${bestMonths.take(6).joinToString(", ")}",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
 }

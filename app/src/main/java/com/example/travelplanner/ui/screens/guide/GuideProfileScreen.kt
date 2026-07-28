@@ -34,15 +34,55 @@ fun GuideProfileScreen(
     var editBio by remember { mutableStateOf("") }
     var editName by remember { mutableStateOf("") }
     var editLanguages by remember { mutableStateOf("") }
+    var editContactNumber by remember { mutableStateOf("") }
+    var editAvatarUrl by remember { mutableStateOf("") }
+    var showPhotoDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(profile) {
-        // Always sync edit fields from the latest saved profile state,
-        // but only when we are NOT actively editing (to avoid clobbering in-progress edits).
         if (!isEditing && profile.name.isNotBlank()) {
             editName = profile.name
             editBio = profile.bio
             editLanguages = profile.languages.joinToString(", ")
+            editContactNumber = profile.contactNumber
+            editAvatarUrl = profile.avatarUrl
         }
+    }
+
+    if (showPhotoDialog) {
+        AlertDialog(
+            onDismissRequest = { showPhotoDialog = false },
+            title = { Text("Update Profile Photo", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Enter image URL or photo path:", style = MaterialTheme.typography.bodyMedium)
+                    OutlinedTextField(
+                        value = editAvatarUrl,
+                        onValueChange = { editAvatarUrl = it },
+                        label = { Text("Photo URL") },
+                        placeholder = { Text("https://example.com/photo.jpg") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val langs = editLanguages.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                        viewModel.updateProfile(editBio, editName.ifBlank { profile.name }, langs, editContactNumber, editAvatarUrl) {
+                            showPhotoDialog = false
+                        }
+                    }
+                ) {
+                    Text("Save Photo")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPhotoDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -59,7 +99,7 @@ fun GuideProfileScreen(
                         IconButton(
                             onClick = {
                                 val langs = editLanguages.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-                                viewModel.updateProfile(editBio, editName, langs) {
+                                viewModel.updateProfile(editBio, editName, langs, editContactNumber, editAvatarUrl) {
                                     isEditing = false
                                 }
                             }
@@ -114,12 +154,12 @@ fun GuideProfileScreen(
                             }
                         }
                         FilledIconButton(
-                            onClick = {},
+                            onClick = { showPhotoDialog = true },
                             modifier = Modifier.size(32.dp),
                             shape = CircleShape,
                             colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
-                            Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.PhotoCamera, contentDescription = "Upload Photo", modifier = Modifier.size(16.dp))
                         }
                     }
 
@@ -133,8 +173,24 @@ fun GuideProfileScreen(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp)
                         )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = editContactNumber,
+                            onValueChange = { editContactNumber = it },
+                            label = { Text("Contact Number") },
+                            placeholder = { Text("+1 (555) 019-2834") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            leadingIcon = { Icon(Icons.Default.Phone, null) }
+                        )
                     } else {
                         Text(profile.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(profile.contactNumber, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                         Spacer(Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Verified, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
@@ -170,6 +226,15 @@ fun GuideProfileScreen(
                             label = { Text("Languages spoken (comma separated)") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = editContactNumber,
+                            onValueChange = { editContactNumber = it },
+                            label = { Text("Contact Phone Number") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            leadingIcon = { Icon(Icons.Default.Phone, null) }
                         )
                     } else {
                         Text(
@@ -235,10 +300,6 @@ fun GuideProfileScreen(
                         Text("Background Check")
                         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981))
                     }
-
-                    Spacer(Modifier.height(8.dp))
-                    Text("Emergency Contact", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                    Text("Emma Doe (Spouse): +1 (555) 019-9922", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 

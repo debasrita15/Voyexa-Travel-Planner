@@ -80,6 +80,7 @@ fun HomeScreen(
     onOpenSuggestions: () -> Unit,
     onOpenYearPlanner: () -> Unit,
     onOpenTrip: (String) -> Unit,
+    onOpenChat: () -> Unit,
     onLogout: () -> Unit,
     onLogin: () -> Unit
 ) {
@@ -133,21 +134,15 @@ fun HomeScreen(
         containerColor = MaterialTheme.colorScheme.background,
 
         floatingActionButton = {
-
             ExtendedFloatingActionButton(
-
-                onClick = onCreateTrip,
-
+                onClick = onOpenChat,
                 icon = {
-                    Icon(Icons.Default.Add, null)
+                    Icon(Icons.Default.AutoAwesome, null)
                 },
-
                 text = {
-                    Text("New Trip")
+                    Text("AI Chat")
                 },
-
                 containerColor = MaterialTheme.colorScheme.tertiary,
-
                 contentColor = MaterialTheme.colorScheme.onTertiary
             )
         }
@@ -174,6 +169,7 @@ fun HomeScreen(
                     onOpenSuggestions = onOpenSuggestions,
                     onOpenYearPlanner = onOpenYearPlanner,
                     onCreateTrip = onCreateTrip,
+                    onOpenChat = onOpenChat,
                     onLogout = onLogout,
                     onLogin = onLogin,
                     onFindGuide = { showGuideRequestSheet = true }
@@ -252,6 +248,22 @@ private fun GuideRequestBottomSheet(
     var isLoading by remember { mutableStateOf(false) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val context = LocalContext.current
+    val calendar = java.util.Calendar.getInstance()
+
+    val datePickerDialog = remember {
+        android.app.DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val selectedCal = java.util.Calendar.getInstance()
+                selectedCal.set(year, month, dayOfMonth)
+                date = Dates.formatDate(selectedCal.timeInMillis)
+            },
+            calendar.get(java.util.Calendar.YEAR),
+            calendar.get(java.util.Calendar.MONTH),
+            calendar.get(java.util.Calendar.DAY_OF_MONTH)
+        )
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -302,12 +314,10 @@ private fun GuideRequestBottomSheet(
 
             HorizontalDivider()
 
-            // Your Name (read-only)
-            val displayName = if (session.displayName.isNotBlank()) session.displayName else "Traveller"
+            // Preferred Tour Details
             OutlinedTextField(
-                value = displayName,
+                value = if (session.displayName.isNotBlank()) session.displayName else "Traveller",
                 onValueChange = {},
-                readOnly = true,
                 label = { Text("Your Name") },
                 leadingIcon = { Icon(Icons.Default.Person, null) },
                 modifier = Modifier.fillMaxWidth(),
@@ -333,19 +343,33 @@ private fun GuideRequestBottomSheet(
                 )
             )
 
-            // Date
-            OutlinedTextField(
-                value = date,
-                onValueChange = { date = it },
-                label = { Text("Preferred Date * (e.g. July 25, 2026)") },
-                leadingIcon = { Icon(Icons.Default.DateRange, null) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary
+            // Preferred Date using Calendar Dialog
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { datePickerDialog.show() }
+            ) {
+                OutlinedTextField(
+                    value = date,
+                    onValueChange = {},
+                    readOnly = true,
+                    enabled = false,
+                    label = { Text("Preferred Date * (Select on Calendar)") },
+                    placeholder = { Text("Tap to select date from calendar") },
+                    leadingIcon = { Icon(Icons.Default.DateRange, null) },
+                    trailingIcon = { Icon(Icons.Default.CalendarMonth, null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledBorderColor = MaterialTheme.colorScheme.primary,
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledLabelColor = MaterialTheme.colorScheme.primary,
+                        disabledLeadingIconColor = MaterialTheme.colorScheme.primary,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.primary
+                    )
                 )
-            )
+            }
 
             // Group Size
             OutlinedTextField(
@@ -428,6 +452,7 @@ private fun HeroHeader(
     onOpenSuggestions: () -> Unit,
     onOpenYearPlanner: () -> Unit,
     onCreateTrip: () -> Unit,
+    onOpenChat: () -> Unit,
     onLogout: () -> Unit,
     onLogin: () -> Unit,
     onFindGuide: () -> Unit
@@ -566,13 +591,9 @@ private fun HeroHeader(
             Spacer(Modifier.height(15.dp))
 
             Row(
-
                 modifier = Modifier.fillMaxWidth(),
-
                 horizontalArrangement = Arrangement.SpaceEvenly
-
             ) {
-
                 HeaderButton(
                     Icons.Default.Add,
                     "Trip",
@@ -596,7 +617,6 @@ private fun HeroHeader(
                     "Guide",
                     onFindGuide
                 )
-
             }
 
         }

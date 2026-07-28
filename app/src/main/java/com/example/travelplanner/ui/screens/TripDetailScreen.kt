@@ -12,7 +12,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
+import com.example.travelplanner.domain.PackingCategory
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -47,7 +51,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
 import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextDecoration
 
@@ -173,16 +176,48 @@ class TripDetailViewModel(private val tripId: String) : ViewModel() {
         }
     }
 
+    fun addPackingItem(title: String, category: com.example.travelplanner.domain.PackingCategory) {
+        val trip = _state.value.trip ?: return
+        if (title.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val newItem = PackingItemEntity(
+                id = UUID.randomUUID().toString(),
+                tripId = trip.id,
+                category = category,
+                title = title.trim(),
+                isChecked = false
+            )
+            val updated = _state.value.packing + newItem
+            repo.replacePacking(trip.id, updated)
+        }
+    }
+
+    fun deletePackingItem(item: PackingItemEntity) {
+        val trip = _state.value.trip ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            val updated = _state.value.packing.filter { it.id != item.id }
+            repo.replacePacking(trip.id, updated)
+        }
+    }
+
+    fun updateTripStatus(newStatus: TripStatus) {
+        val trip = _state.value.trip ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            val updated = trip.copy(status = newStatus, updatedAtEpochMs = System.currentTimeMillis())
+            repo.upsertTrip(updated)
+        }
+    }
+
     fun updateBudgetPlanned(item: TripBudgetItemEntity, planned: Double) {
         viewModelScope.launch(Dispatchers.IO) {
             repo.updateBudget(item.copy(planned = planned))
         }
     }
 
-    fun scheduleLeaveReminder(context: Context) {
+    fun scheduleLeaveReminder(context: Context, daysBefore: Int = 14) {
         val trip = _state.value.trip ?: return
 
-        val trigger = Dates.addDays(Dates.startOfDay(trip.startDateEpochMs), -14) + (9 * 60 * 60 * 1000L)
+        val trigger = Dates.addDays(Dates.startOfDay(trip.startDateEpochMs), -daysBefore) + (9 * 60 * 60 * 1000L)
 
         WorkScheduler.scheduleLeaveReminder(
             context = context.applicationContext,
@@ -193,7 +228,23 @@ class TripDetailViewModel(private val tripId: String) : ViewModel() {
             triggerAtEpochMs = trigger
         )
 
-        _state.update { it.copy(message = "Reminder scheduled") }
+        _state.update { it.copy(message = "Leave reminder scheduled $daysBefore days before departure! 🔔") }
+    }
+
+    fun scheduleLeaveReminderAtExactDate(context: Context, triggerEpochMs: Long) {
+        val trip = _state.value.trip ?: return
+
+        WorkScheduler.scheduleLeaveReminder(
+            context = context.applicationContext,
+            tripId = trip.id,
+            tripTitle = trip.title,
+            destination = trip.destination,
+            dateRange = "${Dates.formatDate(trip.startDateEpochMs)} to ${Dates.formatDate(trip.endDateEpochMs)}",
+            triggerAtEpochMs = triggerEpochMs
+        )
+
+        val formattedDate = Dates.formatDate(triggerEpochMs)
+        _state.update { it.copy(message = "Leave reminder scheduled for $formattedDate at 9:00 AM! 🔔") }
     }
 
     fun exportTripJson(context: Context, uri: android.net.Uri) {
@@ -250,50 +301,27 @@ class TripDetailViewModel(private val tripId: String) : ViewModel() {
 
                 val settings = settingsRepo.observeSettings().first()
 
-                when (settings.llmProvider) {
+                var activeProvider = settings.llmProvider
+                when (activeProvider) {
                     LLMProviderType.OPENAI -> {
-                        val key = settingsRepo.loadOpenAIKey()?.trim().orEmpty()
-                        if (key.isEmpty()) {
-                            _state.update { it.copy(loading = false, message = "OpenAI key missing. Add it from Settings") }
-                            return@launch
-                        }
+                        if (settingsRepo.loadOpenAIKey()?.trim().isNullOrEmpty()) activeProvider = LLMProviderType.LOCAL
                     }
                     LLMProviderType.GROQ -> {
-                        val key = settingsRepo.loadGroqKey()?.trim().orEmpty()
-                        if (key.isEmpty()) {
-                            _state.update { it.copy(loading = false, message = "Groq key missing. Add it from Settings") }
-                            return@launch
-                        }
+                        if (settingsRepo.loadGroqKey()?.trim().isNullOrEmpty()) activeProvider = LLMProviderType.LOCAL
                     }
                     LLMProviderType.GEMINI -> {
-                        val key = settingsRepo.loadGeminiKey()?.trim().orEmpty()
-                        if (key.isEmpty()) {
-                            _state.update { it.copy(loading = false, message = "Gemini key missing. Add it from Settings") }
-                            return@launch
-                        }
+                        if (settingsRepo.loadGeminiKey()?.trim().isNullOrEmpty()) activeProvider = LLMProviderType.LOCAL
                     }
                     LLMProviderType.ANTHROPIC -> {
-                        val key = settingsRepo.loadAnthropicKey()?.trim().orEmpty()
-                        if (key.isEmpty()) {
-                            _state.update { it.copy(loading = false, message = "Anthropic key missing. Add it from Settings") }
-                            return@launch
-                        }
+                        if (settingsRepo.loadAnthropicKey()?.trim().isNullOrEmpty()) activeProvider = LLMProviderType.LOCAL
                     }
                     LLMProviderType.MCP -> {
-                        val missingKeys = mutableListOf<String>()
-                        settings.mcpProviders.forEach { provider ->
-                            val hasKey = when (provider) {
-                                "OPENAI" -> settingsRepo.loadOpenAIKey()?.isNotEmpty() == true
-                                "GROQ" -> settingsRepo.loadGroqKey()?.isNotEmpty() == true
-                                "GEMINI" -> settingsRepo.loadGeminiKey()?.isNotEmpty() == true
-                                "ANTHROPIC" -> settingsRepo.loadAnthropicKey()?.isNotEmpty() == true
-                                else -> false
-                            }
-                            if (!hasKey) missingKeys.add(provider)
-                        }
-                        if (missingKeys.isNotEmpty()) {
-                            _state.update { it.copy(loading = false, message = "MCP missing keys: ${missingKeys.joinToString(", ")}") }
-                            return@launch
+                        val hasGroq = !settingsRepo.loadGroqKey()?.trim().isNullOrEmpty()
+                        val hasGemini = !settingsRepo.loadGeminiKey()?.trim().isNullOrEmpty()
+                        val hasOpenAI = !settingsRepo.loadOpenAIKey()?.trim().isNullOrEmpty()
+                        val hasAnthropic = !settingsRepo.loadAnthropicKey()?.trim().isNullOrEmpty()
+                        if (!hasGroq && !hasGemini && !hasOpenAI && !hasAnthropic) {
+                            activeProvider = LLMProviderType.LOCAL
                         }
                     }
                     LLMProviderType.LOCAL -> {}
@@ -306,7 +334,7 @@ class TripDetailViewModel(private val tripId: String) : ViewModel() {
 
                 val prompt = PromptTemplates.enrichPrompt(trip, days, itemsByDay, settings)
 
-                val suggestions: List<LLMActivitySuggestion> = when (settings.llmProvider) {
+                val suggestions: List<LLMActivitySuggestion> = when (activeProvider) {
                     LLMProviderType.LOCAL -> {
                         listOf(
                             LLMActivitySuggestion(null, "Morning", "Kid-friendly park visit", "Low commute, start early. Great for children with plenty of safe play areas."),
@@ -753,37 +781,54 @@ fun TripDetailScreen(
                                 fontWeight = FontWeight.Bold
                             )
 
-                            Surface(
+                            var statusMenuExpanded by remember { mutableStateOf(false) }
 
-                                shape = RoundedCornerShape(50),
+                            Box {
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = when (trip.status) {
+                                        TripStatus.DRAFT -> MaterialTheme.colorScheme.secondaryContainer
+                                        TripStatus.PLANNED -> MaterialTheme.colorScheme.primaryContainer
+                                        TripStatus.COMPLETED -> MaterialTheme.colorScheme.tertiaryContainer
+                                    },
+                                    modifier = Modifier.clickable { statusMenuExpanded = true }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+                                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            text = "Status: ${trip.status.name}",
+                                            fontWeight = FontWeight.Bold,
+                                            color = when (trip.status) {
+                                                TripStatus.DRAFT -> MaterialTheme.colorScheme.onSecondaryContainer
+                                                TripStatus.PLANNED -> MaterialTheme.colorScheme.onPrimaryContainer
+                                                TripStatus.COMPLETED -> MaterialTheme.colorScheme.onTertiaryContainer
+                                            }
+                                        )
+                                        Icon(
+                                            androidx.compose.material.icons.Icons.Default.ArrowDropDown,
+                                            contentDescription = "Change Status",
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
 
-                                color =
-                                    if (isSystemInDarkTheme())
-                                        MaterialTheme.colorScheme.secondaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.primaryContainer
-
-                            ) {
-
-                                Text(
-
-                                    text = trip.status.name.replace("_", " "),
-
-                                    modifier = Modifier.padding(
-                                        horizontal = 18.dp,
-                                        vertical = 10.dp
-                                    ),
-
-                                    color =
-                                        if (isSystemInDarkTheme())
-                                            MaterialTheme.colorScheme.onSecondaryContainer
-                                        else
-                                            MaterialTheme.colorScheme.onPrimaryContainer,
-
-                                    fontWeight = FontWeight.Bold
-
-                                )
-
+                                DropdownMenu(
+                                    expanded = statusMenuExpanded,
+                                    onDismissRequest = { statusMenuExpanded = false }
+                                ) {
+                                    TripStatus.entries.forEach { s ->
+                                        DropdownMenuItem(
+                                            text = { Text(s.name) },
+                                            onClick = {
+                                                vm.updateTripStatus(s)
+                                                statusMenuExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
                             }
 
                         }
@@ -929,56 +974,84 @@ fun TripDetailScreen(
                 }
 
                 item {
+                    var showCustomDatePicker by remember { mutableStateOf(false) }
+                    var scheduledDateText by remember { mutableStateOf<String?>(null) }
+
+                    val customDatePickerState = rememberDatePickerState(
+                        initialSelectedDateMillis = System.currentTimeMillis()
+                    )
+
+                    if (showCustomDatePicker) {
+                        DatePickerDialog(
+                            onDismissRequest = { showCustomDatePicker = false },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        customDatePickerState.selectedDateMillis?.let { selectedMs ->
+                                            val triggerMs = Dates.startOfDay(selectedMs) + (9 * 60 * 60 * 1000L)
+                                            vm.scheduleLeaveReminderAtExactDate(ctx, triggerMs)
+                                            scheduledDateText = Dates.formatDate(triggerMs)
+                                        }
+                                        showCustomDatePicker = false
+                                    }
+                                ) {
+                                    Text("OK")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showCustomDatePicker = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        ) {
+                            DatePicker(state = customDatePickerState)
+                        }
+                    }
 
                     ElevatedCard(
-
                         shape = RoundedCornerShape(24.dp),
-
                         colors = CardDefaults.elevatedCardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainer
                         )
-
                     ) {
-
                         Column(
                             modifier = Modifier.padding(20.dp),
                             verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
+                            Text(
+                                "Leave & Departure Reminder",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Select a custom reminder date on the calendar for your trip",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-
-                                Column {
-
-                                    Text(
-                                        "Leave Reminder",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-
-                                    Text(
-                                        "14 days before departure",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-
-                                }
-
-                                FilledTonalButton(
-                                    onClick = {
-                                        vm.scheduleLeaveReminder(ctx)
-                                    }
+                            scheduledDateText?.let { dateStr ->
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = MaterialTheme.colorScheme.primaryContainer
                                 ) {
-                                    Text("Schedule")
+                                    Text(
+                                        "🔔 Scheduled for: $dateStr at 9:00 AM",
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
                                 }
-
                             }
 
+                            Button(
+                                onClick = { showCustomDatePicker = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text("📅 Choose Custom Reminder Date")
+                            }
                         }
-
                     }
-
                 }
 
                 item {
@@ -1075,68 +1148,70 @@ fun TripDetailScreen(
                                 fontWeight = FontWeight.Bold
                             )
 
-                            if (state.packing.isEmpty()) {
+                            AddPackingItemRow(
+                                onAddItem = { title, cat ->
+                                    vm.addPackingItem(title, cat)
+                                }
+                            )
 
+                            HorizontalDivider()
+
+                            if (state.packing.isEmpty()) {
                                 Text(
                                     "No packing items.",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-
                             } else {
-
                                 state.packing
                                     .sortedBy { it.category }
                                     .forEach { item ->
-
                                         Card(
                                             colors = CardDefaults.cardColors(
                                                 containerColor = MaterialTheme.colorScheme.surface
                                             )
                                         ) {
-
                                             Row(
-
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .padding(
                                                         horizontal = 16.dp,
                                                         vertical = 12.dp
                                                     ),
-
                                                 horizontalArrangement = Arrangement.SpaceBetween,
-
                                                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-
                                             ) {
-
-                                                Column {
-
+                                                Column(modifier = Modifier.weight(1f)) {
                                                     Text(
                                                         item.title,
                                                         fontWeight = FontWeight.SemiBold
                                                     )
-
                                                     Text(
                                                         text = item.category.name.replace("_", " "),
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
-
                                                 }
 
-                                                Checkbox(
-                                                    checked = item.isChecked,
-                                                    onCheckedChange = {
-                                                        vm.togglePacking(item)
+                                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                                    Checkbox(
+                                                        checked = item.isChecked,
+                                                        onCheckedChange = {
+                                                            vm.togglePacking(item)
+                                                        }
+                                                    )
+                                                    IconButton(
+                                                        onClick = { vm.deletePackingItem(item) }
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Default.Delete,
+                                                            contentDescription = "Delete",
+                                                            tint = MaterialTheme.colorScheme.error
+                                                        )
                                                     }
-                                                )
-
+                                                }
                                             }
-
                                         }
-
                                     }
-
                             }
 
                         }
@@ -1146,14 +1221,38 @@ fun TripDetailScreen(
                 }
 
                 item {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text(
+                                    "🗓️ Trip Itinerary",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    "${state.days.size} Days Planned",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
 
-                    Text(
-                        "Trip Itinerary",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
+                            FilledTonalButton(
+                                enabled = !state.loading,
+                                onClick = { vm.generateItinerary() }
+                            ) {
+                                Text("Generate")
+                            }
+                        }
+                    }
                 }
 
                 items(
@@ -1463,3 +1562,73 @@ fun TripDetailScreen(
 
     }
 
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddPackingItemRow(
+    onAddItem: (String, PackingCategory) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf(PackingCategory.ESSENTIALS) }
+    var categoryExpanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Item Name") },
+                placeholder = { Text("e.g. Passport, Charger") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                shape = RoundedCornerShape(14.dp)
+            )
+
+            Box {
+                FilterChip(
+                    selected = true,
+                    onClick = { categoryExpanded = true },
+                    label = { Text(selectedCategory.name) },
+                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) }
+                )
+
+                DropdownMenu(
+                    expanded = categoryExpanded,
+                    onDismissRequest = { categoryExpanded = false }
+                ) {
+                    PackingCategory.entries.forEach { cat ->
+                        DropdownMenuItem(
+                            text = { Text(cat.name.replace("_", " ")) },
+                            onClick = {
+                                selectedCategory = cat
+                                categoryExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        Button(
+            onClick = {
+                if (title.isNotBlank()) {
+                    onAddItem(title, selectedCategory)
+                    title = ""
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null)
+            Spacer(Modifier.width(6.dp))
+            Text("Add Item to Packing List")
+        }
+    }
+}

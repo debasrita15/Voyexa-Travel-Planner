@@ -1,6 +1,8 @@
 package com.example.travelplanner.data.repo
 
 import android.content.Context
+import com.example.travelplanner.data.remote.toSupabaseDto
+import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,10 +33,10 @@ data class BookingItem(
     val travellerContact: String = "+1 (555) 019-2834",
     val travellerAvatar: String = "",
     val destination: String,
-    val tourPackage: String,
+    val tourPackage: String = "Private Custom Tour",
     val date: String,
     val meetingTime: String = "09:30 AM",
-    val meetingLocation: String,
+    val meetingLocation: String = "City Center / Hotel Pickup",
     val groupSize: Int,
     val specialRequests: String = "None",
     val paymentStatus: String,
@@ -64,7 +66,7 @@ data class ActivityStop(
 data class ReviewItem(
     val id: String,
     val travellerName: String,
-    val tourName: String,
+    val tourName: String = "Guided Tour",
     val rating: Int,
     val reviewText: String,
     val date: String,
@@ -98,156 +100,56 @@ data class GuideProfileData(
     val certifications: List<String>,
     val specializations: List<String>,
     val rating: Double,
+    val contactNumber: String = "+1 (555) 019-2834",
+    val avatarUrl: String = "",
     val verificationStatus: String = "Verified"
 )
 
 // ===== REPOSITORY =====
 
-class GuideRepository(context: Context) {
+class GuideRepository(private val context: Context) {
 
-    // Initial state flows populated with realistic mock data
-    private val _tours = MutableStateFlow<List<TourItem>>(
-        listOf(
-            TourItem(
-                id = "t1",
-                title = "Old Goa Heritage Walk",
-                destination = "Old Goa, India",
-                category = "History & Culture",
-                description = "Explore the ancient Portuguese churches and relics of Old Goa.",
-                startDate = "2026-07-20",
-                endDate = "2026-07-20",
-                meetingPoint = "Fontainhas Post Office",
-                maxTravellers = 15,
-                price = 35.00,
-                duration = "3 hours",
-                difficulty = "Easy",
-                languages = "English, Hindi"
-            )
-        )
-    )
+    // Dynamic initial state flows (start empty for newly signed up guides)
+    private val _tours = MutableStateFlow<List<TourItem>>(emptyList())
     val tours: Flow<List<TourItem>> = _tours.asStateFlow()
 
-    private val _bookings = MutableStateFlow<List<BookingItem>>(
-        listOf(
-            BookingItem(
-                id = "b1",
-                travellerName = "Sarah Jenkins",
-                travellerContact = "+1 (555) 012-3456",
-                destination = "Goa Heritage Walk",
-                tourPackage = "Heritage Standard Package",
-                date = "July 16, 2026",
-                meetingTime = "9:30 AM",
-                meetingLocation = "Fontainhas Post Office",
-                groupSize = 12,
-                paymentStatus = "Paid",
-                status = "Confirmed",
-                notes = "Vegetarian option requested for food stops."
-            ),
-            BookingItem(
-                id = "b2",
-                travellerName = "David Miller",
-                travellerContact = "+1 (555) 098-7654",
-                destination = "Spice Plantation & Waterfalls",
-                tourPackage = "Private Family Excursion",
-                date = "July 18, 2026",
-                meetingTime = "10:00 AM",
-                meetingLocation = "Sahakari Spice Farm Entrance",
-                groupSize = 6,
-                paymentStatus = "Pending",
-                status = "Pending",
-                notes = "Will bring young children, need slow pace."
-            ),
-            BookingItem(
-                id = "b3",
-                travellerName = "Emma Watson",
-                travellerContact = "+44 7911 123456",
-                destination = "Old Goa Churches Tour",
-                tourPackage = "Photography Walk",
-                date = "July 12, 2026",
-                meetingTime = "09:00 AM",
-                meetingLocation = "Basilica of Bom Jesus Gate",
-                groupSize = 2,
-                paymentStatus = "Paid",
-                status = "Completed"
-            )
-        )
-    )
+    private val _bookings = MutableStateFlow<List<BookingItem>>(emptyList())
     val bookings: Flow<List<BookingItem>> = _bookings.asStateFlow()
 
-    private val _schedule = MutableStateFlow<List<TourScheduleItem>>(
-        listOf(
-            TourScheduleItem(
-                id = "s1",
-                destination = "Goa Heritage Walk",
-                time = "9:30 AM",
-                meetingPoint = "Fontainhas Post Office",
-                travellersCount = 12,
-                status = "Confirmed",
-                activities = listOf(
-                    ActivityStop("a1", "09:30 AM", "Meet & Greet at Fontainhas Post Office", "15 mins", "Check registration forms."),
-                    ActivityStop("a2", "09:45 AM", "Historical Briefing at Latin Quarter", "45 mins", "Discuss Portuguese architecture."),
-                    ActivityStop("a3", "10:30 AM", "Visit St. Sebastian Chapel", "30 mins", "Photography stop inside."),
-                    ActivityStop("a4", "11:00 AM", "Local Tea & Bakery Refreshment Break", "30 mins", "Provide traditional Goan sweets."),
-                    ActivityStop("a5", "11:30 AM", "Walk towards Basilica of Bom Jesus", "60 mins", "Detailed historical guiding.")
-                )
-            )
-        )
-    )
+    private val _schedule = MutableStateFlow<List<TourScheduleItem>>(emptyList())
     val schedule: Flow<List<TourScheduleItem>> = _schedule.asStateFlow()
 
-    private val _reviews = MutableStateFlow<List<ReviewItem>>(
-        listOf(
-            ReviewItem(
-                id = "r1",
-                travellerName = "Emily Watson",
-                tourName = "Old Goa Churches Tour",
-                rating = 5,
-                reviewText = "Incredible guide! Explained the architecture and historical background of Old Goa so passionately. Highly recommended!",
-                date = "July 12, 2026"
-            ),
-            ReviewItem(
-                id = "r2",
-                travellerName = "James Peterson",
-                tourName = "Goa Heritage Walk",
-                rating = 4,
-                reviewText = "Very friendly, punctual, and knowledgeable. The heritage walk was very engaging.",
-                date = "July 08, 2026"
-            )
-        )
-    )
+    private val _reviews = MutableStateFlow<List<ReviewItem>>(emptyList())
     val reviews: Flow<List<ReviewItem>> = _reviews.asStateFlow()
 
-    private val _availability = MutableStateFlow<List<AvailabilityDay>>(
-        listOf(
-            AvailabilityDay("2026-07-16", "Available", "09:00", "17:00", true),
-            AvailabilityDay("2026-07-17", "Available", "09:00", "17:00", true),
-            AvailabilityDay("2026-07-18", "Vacation", "00:00", "00:00", false),
-            AvailabilityDay("2026-07-19", "Unavailable", "00:00", "00:00", true)
-        )
-    )
+    private val _availability = MutableStateFlow<List<AvailabilityDay>>(emptyList())
     val availability: Flow<List<AvailabilityDay>> = _availability.asStateFlow()
 
     private val _earnings = MutableStateFlow(
         EarningsData(
-            todayEarnings = 180.0,
-            weeklyEarnings = 920.0,
-            monthlyEarnings = 4200.0,
-            totalEarnings = 12450.0,
-            withdrawableBalance = 1850.0,
-            completedToursCount = 24
+            todayEarnings = 0.0,
+            weeklyEarnings = 0.0,
+            monthlyEarnings = 0.0,
+            totalEarnings = 0.0,
+            withdrawableBalance = 0.0,
+            completedToursCount = 0
         )
     )
     val earnings: Flow<EarningsData> = _earnings.asStateFlow()
 
+    private val prefs = context.getSharedPreferences("guide_profile_prefs", Context.MODE_PRIVATE)
+
     private val _profile = MutableStateFlow(
         GuideProfileData(
-            name = "John Doe",
-            bio = "Professional Goan travel guide with over 8 years of experience showcasing Portugal architecture, historical sites, and nature treks.",
-            languages = listOf("English", "Hindi", "Portuguese"),
-            experienceYears = 8,
-            certifications = listOf("Certified Govt Tourism Guide", "First Aid Responder", "Historical Arts Specialist"),
-            specializations = listOf("Heritage Walks", "Spice Farm Excursions", "Photography Trails"),
-            rating = 4.9
+            name = prefs.getString("guide_name", "")?.ifBlank { null } ?: "Official Guide",
+            bio = prefs.getString("guide_bio", "")?.ifBlank { null } ?: "Certified local travel guide showcasing historical destinations and custom tours.",
+            languages = prefs.getString("guide_languages", "")?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }?.ifEmpty { null } ?: listOf("English", "Hindi"),
+            experienceYears = 3,
+            certifications = listOf("Certified Govt Tourism Guide"),
+            specializations = listOf("City Heritage", "Cultural Tours"),
+            rating = 5.0,
+            contactNumber = prefs.getString("guide_contact", "")?.ifBlank { null } ?: "+1 (555) 019-2834",
+            avatarUrl = prefs.getString("guide_avatar", "") ?: ""
         )
     )
     val profile: Flow<GuideProfileData> = _profile.asStateFlow()
@@ -268,6 +170,7 @@ class GuideRepository(context: Context) {
         }
         _bookings.value = updatedList
         updateStatsAndSchedule()
+        syncCloudBookingState(bookingId)
     }
 
     suspend fun rejectBooking(bookingId: String) {
@@ -279,6 +182,7 @@ class GuideRepository(context: Context) {
         }
         _bookings.value = updatedList
         updateStatsAndSchedule()
+        syncCloudBookingState(bookingId)
     }
 
     suspend fun completeBooking(bookingId: String) {
@@ -304,6 +208,7 @@ class GuideRepository(context: Context) {
         )
 
         updateStatsAndSchedule()
+        syncCloudBookingState(bookingId)
     }
 
     suspend fun rescheduleBooking(bookingId: String, newDate: String, newTime: String) {
@@ -315,6 +220,7 @@ class GuideRepository(context: Context) {
         }
         _bookings.value = updatedList
         updateStatsAndSchedule()
+        syncCloudBookingState(bookingId)
     }
 
     suspend fun cancelBooking(bookingId: String) {
@@ -326,6 +232,15 @@ class GuideRepository(context: Context) {
         }
         _bookings.value = updatedList
         updateStatsAndSchedule()
+        syncCloudBookingState(bookingId)
+    }
+
+    private suspend fun syncCloudBookingState(bookingId: String) {
+        try {
+            val booking = _bookings.value.firstOrNull { it.id == bookingId } ?: return
+            val dto = booking.toSupabaseDto()
+            com.example.travelplanner.util.Supabase.client.from("guide_bookings").upsert(dto)
+        } catch (_: Exception) {}
     }
 
     suspend fun saveAvailability(days: List<AvailabilityDay>) {
@@ -357,27 +272,129 @@ class GuideRepository(context: Context) {
 
     suspend fun requestGuide(booking: BookingItem) {
         val currentList = _bookings.value
-        _bookings.value = listOf(booking) + currentList
+        val updated = listOf(booking) + currentList.filter { it.id != booking.id }
+        _bookings.value = updated
+        updateStatsAndSchedule()
+
+        // Sync with Supabase cloud database
+        try {
+            val dto = booking.toSupabaseDto()
+            com.example.travelplanner.util.Supabase.client.from("guide_bookings").upsert(dto)
+        } catch (_: Exception) {}
     }
 
-    suspend fun updateProfile(bio: String, name: String, languages: List<String>) {
+    suspend fun syncGuideBookingsFromCloud() {
+        val mergedBookings = mutableListOf<BookingItem>()
+        try {
+            val dtos = com.example.travelplanner.util.Supabase.client.from("guide_bookings")
+                .select()
+                .decodeList<com.example.travelplanner.data.remote.SupabaseGuideBookingDto>()
+
+            if (dtos.isNotEmpty()) {
+                mergedBookings.addAll(dtos.map { it.toBookingItem() })
+            }
+        } catch (_: Exception) {}
+
+        // Always sync with local Room database trips created by travellers
+        try {
+            val trips = com.example.travelplanner.data.db.AppDatabase.get(context).tripDao().getTripsSync()
+            val existingIds = mergedBookings.map { it.id }.toSet()
+
+            trips.forEach { trip ->
+                val bookingId = "trip_${trip.id}"
+                if (bookingId !in existingIds) {
+                    val formattedDate = try {
+                        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date(trip.startDateEpochMs))
+                    } catch (_: Exception) { "Upcoming" }
+                    mergedBookings.add(
+                        BookingItem(
+                            id = bookingId,
+                            travellerName = if (trip.userId.isNotBlank()) "Traveller" else "Traveller Request",
+                            destination = trip.destination.ifBlank { "Local Tour" },
+                            date = formattedDate,
+                            meetingTime = "09:30 AM",
+                            groupSize = 2,
+                            specialRequests = "Trip: ${trip.title}",
+                            status = "Pending",
+                            paymentStatus = "Pending"
+                        )
+                    )
+                }
+            }
+        } catch (_: Exception) {}
+
+        val currentBookings = _bookings.value
+        val allMerged = (mergedBookings + currentBookings).distinctBy { it.id }
+        if (allMerged.isNotEmpty()) {
+            _bookings.value = allMerged
+            updateStatsAndSchedule()
+        }
+    }
+
+    suspend fun updateProfile(
+        bio: String,
+        name: String,
+        languages: List<String>,
+        contactNumber: String = "",
+        avatarUrl: String = ""
+    ) {
         val currentProfile = _profile.value
-        _profile.value = currentProfile.copy(bio = bio, name = name, languages = languages)
+        val updated = currentProfile.copy(
+            bio = bio.ifBlank { currentProfile.bio },
+            name = name.ifBlank { currentProfile.name },
+            languages = if (languages.isNotEmpty()) languages else currentProfile.languages,
+            contactNumber = if (contactNumber.isNotBlank()) contactNumber else currentProfile.contactNumber,
+            avatarUrl = if (avatarUrl.isNotBlank()) avatarUrl else currentProfile.avatarUrl
+        )
+        _profile.value = updated
+
+        try {
+            prefs.edit().apply {
+                putString("guide_name", updated.name)
+                putString("guide_bio", updated.bio)
+                putString("guide_languages", updated.languages.joinToString(","))
+                putString("guide_contact", updated.contactNumber)
+                putString("guide_avatar", updated.avatarUrl)
+                apply()
+            }
+        } catch (_: Exception) {}
     }
 
     private fun updateStatsAndSchedule() {
-        // Sync schedule status based on bookings
         val list = _bookings.value
-        val confirmedToday = list.filter { it.date.contains("July 16") && it.status == "Confirmed" }
-        val size = confirmedToday.sumOf { it.groupSize }
+        val confirmedBookings = list.filter { it.status == "Confirmed" }
         
-        _schedule.value = _schedule.value.map {
-            if (it.destination == "Goa Heritage Walk") {
-                it.copy(
-                    travellersCount = size,
-                    status = if (size > 0) "Confirmed" else "No Bookings"
+        val newSchedules = confirmedBookings.mapIndexed { idx, booking ->
+            TourScheduleItem(
+                id = booking.id,
+                destination = booking.destination,
+                time = booking.meetingTime.ifBlank { "09:30 AM" },
+                meetingPoint = booking.meetingLocation.ifBlank { "Main Entrance" },
+                travellersCount = booking.groupSize,
+                status = "Confirmed",
+                activities = listOf(
+                    ActivityStop("act_${idx}_1", booking.meetingTime.ifBlank { "09:30 AM" }, "Meet & Greet with ${booking.travellerName}", "15 mins", "Check-in and introductions"),
+                    ActivityStop("act_${idx}_2", "10:00 AM", "Guided Tour of ${booking.destination}", "90 mins", "Explore top spots and hidden gems"),
+                    ActivityStop("act_${idx}_3", "11:30 AM", "Local Refreshments & Q&A", "30 mins", "Taste local delicacies and wrap up")
                 )
-            } else it
+            )
         }
+        _schedule.value = newSchedules
+    }
+
+    fun resetGuideState() {
+        _tours.value = emptyList()
+        _bookings.value = emptyList()
+        _schedule.value = emptyList()
+        _reviews.value = emptyList()
+        _availability.value = emptyList()
+        _earnings.value = EarningsData(
+            todayEarnings = 0.0,
+            weeklyEarnings = 0.0,
+            monthlyEarnings = 0.0,
+            totalEarnings = 0.0,
+            withdrawableBalance = 0.0,
+            completedToursCount = 0
+        )
     }
 }

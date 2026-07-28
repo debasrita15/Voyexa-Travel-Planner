@@ -21,6 +21,9 @@ class TravelPlannerApp : Application() {
             try {
                 val settings = AppGraph.settingsRepository.observeSettings().first()
                 Money.setUserCurrency(settings.currency)
+                AppGraph.tripRepository.syncTripsWithCloud()
+                AppGraph.settingsRepository.syncProfileWithCloud()
+                AppGraph.tripRepository.subscribeToRealtimeTripChanges()
             } catch (e: Exception) {
                 e.printStackTrace()
             }

@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelplanner.ui.viewmodel.guide.BookingDetailsViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,11 +43,101 @@ fun BookingDetailsScreen(
     var showConfirmCancel by remember { mutableStateOf(false) }
     var showConfirmReject by remember { mutableStateOf(false) }
 
+    var showEditEmergencyContactDialog by remember { mutableStateOf(false) }
+    var emergencyContactText by remember(booking?.emergencyContact) { mutableStateOf(booking?.emergencyContact ?: "+1 (555) 019-8877") }
+
+    var showWriteReviewDialog by remember { mutableStateOf(false) }
+    var reviewRating by remember { mutableIntStateOf(5) }
+    var reviewText by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+
     if (booking == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Booking not found.")
         }
         return
+    }
+
+    if (showEditEmergencyContactDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditEmergencyContactDialog = false },
+            title = { Text("Edit Emergency Contact", fontWeight = FontWeight.Bold) },
+            text = {
+                OutlinedTextField(
+                    value = emergencyContactText,
+                    onValueChange = { emergencyContactText = it },
+                    label = { Text("Emergency Contact Number / Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+            },
+            confirmButton = {
+                Button(onClick = { showEditEmergencyContactDialog = false }) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditEmergencyContactDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showWriteReviewDialog) {
+        AlertDialog(
+            onDismissRequest = { showWriteReviewDialog = false },
+            title = { Text("Write Guide Review", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Rate your experience:", style = MaterialTheme.typography.bodyMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        (1..5).forEach { star ->
+                            IconButton(onClick = { reviewRating = star }) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = null,
+                                    tint = if (star <= reviewRating) Color(0xFFFFB000) else Color.LightGray
+                                )
+                            }
+                        }
+                    }
+                    OutlinedTextField(
+                        value = reviewText,
+                        onValueChange = { reviewText = it },
+                        label = { Text("Write your review for the guide...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val newReview = com.example.travelplanner.data.repo.ReviewItem(
+                            id = java.util.UUID.randomUUID().toString(),
+                            travellerName = booking.travellerName.ifBlank { "Traveller" },
+                            tourName = booking.tourPackage.ifBlank { "Guided Tour (${booking.destination})" },
+                            rating = reviewRating,
+                            reviewText = reviewText.ifBlank { "Excellent guide! Very informative and helpful." },
+                            date = "Today"
+                        )
+                        scope.launch {
+                            com.example.travelplanner.app.AppGraph.guideRepository.addReviewWritten(newReview)
+                        }
+                        showWriteReviewDialog = false
+                    }
+                ) {
+                    Text("Submit Review")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWriteReviewDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     if (showRescheduleDialog) {
@@ -240,8 +331,19 @@ fun BookingDetailsScreen(
                     Text(booking.specialRequests, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                     Spacer(Modifier.height(4.dp))
-                    Text("Emergency Contact:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                    Text(booking.emergencyContact, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Emergency Contact:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                            Text(emergencyContactText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                        }
+                        IconButton(onClick = { showEditEmergencyContactDialog = true }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit Emergency Contact", tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
                 }
             }
 
@@ -296,13 +398,13 @@ fun BookingDetailsScreen(
                     }
                 } else if (booking.status == "Completed") {
                     Button(
-                        onClick = { onNavigateToAddReview(bookingId) },
+                        onClick = { showWriteReviewDialog = true },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.Default.AddComment, contentDescription = null)
+                        Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB000))
                         Spacer(Modifier.width(8.dp))
-                        Text("Add Review for Traveller", fontWeight = FontWeight.Bold)
+                        Text("⭐ Write Traveller Review for Guide", fontWeight = FontWeight.Bold)
                     }
                 }
             }

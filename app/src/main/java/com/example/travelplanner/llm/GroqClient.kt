@@ -24,6 +24,44 @@ class GroqClient(
         .build()
     private val json = Json { ignoreUnknownKeys = true }
 
+    suspend fun chat(model: String, prompt: String): String = withContext(Dispatchers.IO) {
+        val key = apiKeyProvider()?.trim().orEmpty()
+        if (key.isEmpty()) throw IllegalStateException("Groq API key missing")
+
+        val payload = """
+            {
+              "model": "$model",
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "You are Voyexa AI, an expert travel assistant. Provide clear, beautifully formatted, bulleted, and helpful travel advice."
+                },
+                {
+                  "role": "user",
+                  "content": ${json.encodeToString(String.serializer(), prompt)}
+                }
+              ],
+              "temperature": 0.7,
+              "max_tokens": 1024
+            }
+        """.trimIndent()
+
+        val req = Request.Builder()
+            .url("https://api.groq.com/openai/v1/chat/completions")
+            .addHeader("Authorization", "Bearer $key")
+            .addHeader("Content-Type", "application/json")
+            .post(payload.toRequestBody("application/json".toMediaType()))
+            .build()
+
+        val resp = client.newCall(req).execute()
+        val body = resp.body?.string().orEmpty()
+        if (!resp.isSuccessful) {
+            throw IllegalStateException("Groq API failed: ${resp.code} $body")
+        }
+
+        extractContent(body)
+    }
+
     suspend fun enrichItinerary(model: String, prompt: String): List<LLMActivitySuggestion> = withContext(Dispatchers.IO) {
         val key = apiKeyProvider()?.trim().orEmpty()
         if (key.isEmpty()) throw IllegalStateException("Groq API key missing")

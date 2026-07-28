@@ -91,21 +91,26 @@ fun EarningsScreen(
                         Spacer(Modifier.height(20.dp))
                         Button(
                             onClick = {
-                                if (earnings.withdrawableBalance > 0) {
-                                    viewModel.withdrawBalance {
-                                        showSuccessWithdraw = true
-                                    }
+                                viewModel.withdrawBalance {
+                                    showSuccessWithdraw = true
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.onPrimary,
-                                contentColor = MaterialTheme.colorScheme.primary
+                                containerColor = Color.White,
+                                contentColor = Color(0xFF0F766E)
                             ),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = earnings.withdrawableBalance > 0
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                         ) {
-                            Text("Withdraw to Bank", fontWeight = FontWeight.Bold)
+                            Icon(Icons.Default.AccountBalance, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "Withdraw to Bank",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFF0F766E)
+                            )
                         }
                     }
                 }
@@ -189,30 +194,52 @@ fun EarningsScreen(
                 )
             }
 
-            // History entries
-            items(transactions) { tx ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+            if (earnings.completedToursCount == 0) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
-                        Column {
-                            Text(tx.description, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(2.dp))
-                            Text("${tx.date} • ${tx.id}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "No transactions completed yet. Complete tour bookings to earn income!",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                        Text(
-                            text = "+₹${tx.amount.toInt()}",
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF10B981)
-                        )
+                    }
+                }
+            } else {
+                items(transactions) { tx ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(tx.description, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(2.dp))
+                                Text("${tx.date} • ${tx.id}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text(
+                                text = "+₹${tx.amount.toInt()}",
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFF10B981)
+                            )
+                        }
                     }
                 }
             }

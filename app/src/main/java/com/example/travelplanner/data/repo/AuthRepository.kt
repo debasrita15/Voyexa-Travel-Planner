@@ -6,9 +6,13 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.example.travelplanner.data.prefs.AuthSession
 import com.example.travelplanner.data.prefs.AuthSessionData
-import kotlinx.coroutines.delay
+import com.example.travelplanner.util.Supabase
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.builtin.Email
 import kotlinx.coroutines.flow.Flow
-import java.security.MessageDigest
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import java.util.UUID
 
 sealed class AuthResult {
@@ -21,7 +25,7 @@ class AuthRepository(context: Context) {
     private val appContext = context.applicationContext
     private val authSession = AuthSession(appContext)
 
-    private val credentialsPrefs by lazy {
+    private val userPrefs by lazy {
         val masterKey = MasterKey.Builder(appContext)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
@@ -38,8 +42,6 @@ class AuthRepository(context: Context) {
     fun observeSession(): Flow<AuthSessionData> = authSession.observe()
 
     suspend fun login(email: String, password: String, role: String): AuthResult {
-        delay(800)
-
         val normalizedEmail = email.trim().lowercase()
         if (!isValidEmail(normalizedEmail)) {
             return AuthResult.Error("Please enter a valid email address")
@@ -48,31 +50,55 @@ class AuthRepository(context: Context) {
             return AuthResult.Error("Password must be at least 6 characters")
         }
 
-        val storedHash = credentialsPrefs.getString(credentialKey(normalizedEmail), null)
-            ?: return AuthResult.Error("No account found with this email. Please sign up.")
+        return try {
+            // Attempt Supabase Authentication
+            Supabase.client.auth.signInWith(Email) {
+                this.email = normalizedEmail
+                this.password = password
+            }
 
-        if (storedHash != hashPassword(password)) {
-            return AuthResult.Error("Incorrect password. Please try again.")
+            val user = Supabase.client.auth.currentUserOrNull()
+            val userId = user?.id ?: UUID.randomUUID().toString()
+
+            val metaRole = user?.userMetadata?.get("role")?.jsonPrimitive?.content
+            val metaDisplayName = user?.userMetadata?.get("display_name")?.jsonPrimitive?.content
+
+            val finalRole = metaRole ?: userPrefs.getString(roleKey(normalizedEmail), role) ?: role
+            if (role.isNotEmpty() && finalRole != role) {
+                return AuthResult.Error("This account is registered as a $finalRole. Please select the correct role.")
+            }
+
+            val displayName = metaDisplayName
+                ?: userPrefs.getString(displayNameKey(normalizedEmail), normalizedEmail.substringBefore("@").replaceFirstChar { it.uppercase() })
+                ?: normalizedEmail
+
+            userPrefs.edit {
+                putString(displayNameKey(normalizedEmail), displayName)
+                putString(userIdKey(normalizedEmail), userId)
+                putString(roleKey(normalizedEmail), finalRole)
+            }
+
+            authSession.saveSession(userId, normalizedEmail, displayName, finalRole)
+            try {
+                com.example.travelplanner.app.AppGraph.tripRepository.clearAllLocalData()
+                com.example.travelplanner.app.AppGraph.guideRepository.resetGuideState()
+                com.example.travelplanner.app.AppGraph.tripRepository.syncTripsWithCloud()
+                com.example.travelplanner.app.AppGraph.settingsRepository.syncProfileWithCloud()
+            } catch (_: Exception) {}
+
+            AuthResult.Success(normalizedEmail, displayName, finalRole)
+        } catch (e: Exception) {
+            AuthResult.Error(e.message ?: "Authentication failed. Please check your credentials and network connection.")
         }
-
-        val storedRole = credentialsPrefs.getString(roleKey(normalizedEmail), "Traveller") ?: "Traveller"
-        if (storedRole != role) {
-            return AuthResult.Error("This account is registered as a $storedRole. Please select the correct role.")
-        }
-
-        val displayName = credentialsPrefs.getString(displayNameKey(normalizedEmail), normalizedEmail)
-            ?: normalizedEmail
-
-        val userId = credentialsPrefs.getString(userIdKey(normalizedEmail), UUID.randomUUID().toString())
-            ?: UUID.randomUUID().toString()
-
-        authSession.saveSession(userId, normalizedEmail, displayName, role)
-        return AuthResult.Success(normalizedEmail, displayName, role)
     }
 
-    suspend fun register(email: String, password: String, confirmPassword: String, role: String): AuthResult {
-        delay(800)
-
+    suspend fun register(
+        email: String,
+        password: String,
+        confirmPassword: String,
+        role: String,
+        displayName: String = ""
+    ): AuthResult {
         val normalizedEmail = email.trim().lowercase()
         if (!isValidEmail(normalizedEmail)) {
             return AuthResult.Error("Please enter a valid email address")
@@ -84,59 +110,77 @@ class AuthRepository(context: Context) {
             return AuthResult.Error("Passwords do not match")
         }
 
-        if (credentialsPrefs.contains(credentialKey(normalizedEmail))) {
-            return AuthResult.Error("An account with this email already exists")
+        val finalDisplayName = displayName.ifBlank {
+            normalizedEmail.substringBefore("@").replaceFirstChar { it.uppercase() }
         }
 
-        val userId = UUID.randomUUID().toString()
-        val displayName = normalizedEmail.substringBefore("@").replaceFirstChar { it.uppercase() }
+        return try {
+            // Register user with Supabase Auth
+            Supabase.client.auth.signUpWith(Email) {
+                this.email = normalizedEmail
+                this.password = password
+                this.data = buildJsonObject {
+                    put("role", role)
+                    put("display_name", finalDisplayName)
+                }
+            }
 
-        credentialsPrefs.edit {
-            putString(credentialKey(normalizedEmail), hashPassword(password))
-            putString(displayNameKey(normalizedEmail), displayName)
-            putString(userIdKey(normalizedEmail), userId)
-            putString(roleKey(normalizedEmail), role)
+            val user = Supabase.client.auth.currentUserOrNull()
+            val userId = user?.id ?: UUID.randomUUID().toString()
+
+            userPrefs.edit {
+                putString(displayNameKey(normalizedEmail), finalDisplayName)
+                putString(userIdKey(normalizedEmail), userId)
+                putString(roleKey(normalizedEmail), role)
+            }
+
+            authSession.saveSession(userId, normalizedEmail, finalDisplayName, role)
+            try {
+                com.example.travelplanner.app.AppGraph.tripRepository.clearAllLocalData()
+                com.example.travelplanner.app.AppGraph.guideRepository.resetGuideState()
+                com.example.travelplanner.app.AppGraph.tripRepository.syncTripsWithCloud()
+                com.example.travelplanner.app.AppGraph.settingsRepository.syncProfileWithCloud()
+            } catch (_: Exception) {}
+
+            AuthResult.Success(normalizedEmail, finalDisplayName, role)
+        } catch (e: Exception) {
+            AuthResult.Error(e.message ?: "Registration failed. An account with this email may already exist.")
         }
-
-        authSession.saveSession(userId, normalizedEmail, displayName, role)
-        return AuthResult.Success(normalizedEmail, displayName, role)
     }
 
     suspend fun forgotPassword(email: String): AuthResult {
-        delay(1000)
-
         val normalizedEmail = email.trim().lowercase()
         if (!isValidEmail(normalizedEmail)) {
             return AuthResult.Error("Please enter a valid email address")
         }
 
-        if (!credentialsPrefs.contains(credentialKey(normalizedEmail))) {
-            return AuthResult.Error("No account found with this email")
+        return try {
+            Supabase.client.auth.resetPasswordForEmail(normalizedEmail)
+            AuthResult.Success(normalizedEmail, "Reset link sent")
+        } catch (e: Exception) {
+            AuthResult.Error(e.message ?: "Failed to send reset email")
         }
-
-        return AuthResult.Success(normalizedEmail, "Reset link sent")
     }
 
     suspend fun signInWithGoogle(): AuthResult {
-        delay(600)
-        return AuthResult.Error("Google Sign-In requires Firebase OAuth setup. Use email instead.")
+        return AuthResult.Error("Google OAuth can be enabled in Supabase Dashboard -> Authentication -> Providers.")
     }
 
     suspend fun logout() {
+        try {
+            Supabase.client.auth.signOut()
+        } catch (_: Exception) {}
         authSession.clearSession()
+        try {
+            com.example.travelplanner.app.AppGraph.tripRepository.clearAllLocalData()
+            com.example.travelplanner.app.AppGraph.guideRepository.resetGuideState()
+        } catch (_: Exception) {}
     }
 
     private fun isValidEmail(email: String): Boolean {
         return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
     }
 
-    private fun hashPassword(password: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        val hash = digest.digest(password.toByteArray())
-        return hash.joinToString("") { "%02x".format(it) }
-    }
-
-    private fun credentialKey(email: String) = "cred_$email"
     private fun displayNameKey(email: String) = "name_$email"
     private fun userIdKey(email: String) = "uid_$email"
     private fun roleKey(email: String) = "role_$email"

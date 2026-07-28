@@ -50,6 +50,10 @@ object AppGraph {
         com.example.travelplanner.data.repo.GuideRepository(appContext)
     }
 
+    val storageRepository: com.example.travelplanner.data.repo.StorageRepository by lazy {
+        com.example.travelplanner.data.repo.StorageRepository()
+    }
+
     // ===== Domain Layer - Use Cases =====
 
     val calculateBudgetUseCase: CalculateBudgetUseCase by lazy {

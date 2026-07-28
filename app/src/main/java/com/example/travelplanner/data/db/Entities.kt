@@ -10,6 +10,7 @@ import com.example.travelplanner.domain.TripType
 @Entity(tableName = "trip_plan")
 data class TripPlanEntity(
     @PrimaryKey val id: String,
+    val userId: String = "",
     val title: String,
     val destination: String,
     val startDateEpochMs: Long,

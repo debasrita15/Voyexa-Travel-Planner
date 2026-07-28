@@ -27,6 +27,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelplanner.app.AppGraph
+import com.example.travelplanner.data.prefs.AuthSessionData
 import com.example.travelplanner.domain.LLMProviderType
 import com.example.travelplanner.domain.TravelPace
 import kotlinx.coroutines.flow.SharingStarted
@@ -79,6 +80,13 @@ class SettingsViewModel : ViewModel() {
         }
     }
 
+    fun updateKidsAges(v: String) {
+        viewModelScope.launch {
+            val youngest = v.split(",").mapNotNull { it.trim().toIntOrNull() }.minOrNull() ?: 2
+            AppGraph.settingsRepository.updateSettings { it.copy(kidsAgesText = v, kidAgeYears = youngest) }
+        }
+    }
+
     fun updateLLMProvider(p: LLMProviderType) {
         viewModelScope.launch {
             AppGraph.settingsRepository.updateSettings { it.copy(llmProvider = p) }
@@ -120,6 +128,36 @@ class SettingsViewModel : ViewModel() {
             AppGraph.settingsRepository.updateSettings { it.copy(travelPace = p) }
         }
     }
+
+    fun updateGuideBaseCity(v: String) {
+        viewModelScope.launch {
+            AppGraph.settingsRepository.updateSettings { it.copy(guideBaseCity = v) }
+        }
+    }
+
+    fun updateGuideHourlyRate(v: Double) {
+        viewModelScope.launch {
+            AppGraph.settingsRepository.updateSettings { it.copy(guideHourlyRate = v) }
+        }
+    }
+
+    fun updateGuideLanguages(v: String) {
+        viewModelScope.launch {
+            AppGraph.settingsRepository.updateSettings { it.copy(guideLanguages = v) }
+        }
+    }
+
+    fun updateGuideSpecialization(v: String) {
+        viewModelScope.launch {
+            AppGraph.settingsRepository.updateSettings { it.copy(guideSpecialization = v) }
+        }
+    }
+
+    fun updateGuideEmergencyContact(v: String) {
+        viewModelScope.launch {
+            AppGraph.settingsRepository.updateSettings { it.copy(guideEmergencyContact = v) }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -130,6 +168,7 @@ fun SettingsScreen(
 
     val vm: SettingsViewModel = viewModel()
     val settings = vm.settingsFlow.collectAsState().value
+    val session by AppGraph.authRepository.observeSession().collectAsState(initial = AuthSessionData())
 
     if (settings == null) {
 
@@ -281,23 +320,27 @@ fun SettingsScreen(
 
         ) {
 
-            TravelPreferencesSection(
-
-                settings = settings,
-
-                onHomeCityChange = vm::updateHomeCity,
-
-                onHomeCountryChange = vm::updateHomeCountry,
-
-                onCurrencyChange = vm::updateCurrency,
-
-                onBudgetChange = vm::updateYearlyBudget,
-
-                onKidAgeChange = vm::updateKidAge,
-
-                onPaceChange = vm::updatePace
-
-            )
+            if (session.role == "Guide") {
+                GuidePreferencesSection(
+                    settings = settings,
+                    onBaseCityChange = vm::updateGuideBaseCity,
+                    onRateChange = vm::updateGuideHourlyRate,
+                    onLanguagesChange = vm::updateGuideLanguages,
+                    onSpecializationChange = vm::updateGuideSpecialization,
+                    onEmergencyContactChange = vm::updateGuideEmergencyContact
+                )
+            } else {
+                TravelPreferencesSection(
+                    settings = settings,
+                    onHomeCityChange = vm::updateHomeCity,
+                    onHomeCountryChange = vm::updateHomeCountry,
+                    onCurrencyChange = vm::updateCurrency,
+                    onBudgetChange = vm::updateYearlyBudget,
+                    onKidAgeChange = vm::updateKidAge,
+                    onKidsAgesChange = vm::updateKidsAges,
+                    onPaceChange = vm::updatePace
+                )
+            }
 
             LLMProviderSection(
 
@@ -351,6 +394,7 @@ private fun TravelPreferencesSection(
     onCurrencyChange: (String) -> Unit,
     onBudgetChange: (Double) -> Unit,
     onKidAgeChange: (Int) -> Unit,
+    onKidsAgesChange: (String) -> Unit,
     onPaceChange: (TravelPace) -> Unit
 ) {
 
@@ -369,8 +413,8 @@ private fun TravelPreferencesSection(
         mutableStateOf(settings.yearlyBudget.toInt().toString())
     }
 
-    var kidAgeText by remember(settings.kidAgeYears) {
-        mutableStateOf(settings.kidAgeYears.toString())
+    var kidsAgesText by remember(settings.kidsAgesText) {
+        mutableStateOf(settings.kidsAgesText)
     }
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
@@ -508,13 +552,16 @@ private fun TravelPreferencesSection(
         )
 
         OutlinedTextField(
-            value = kidAgeText,
+            value = kidsAgesText,
             onValueChange = {
-                kidAgeText = it
-                it.toIntOrNull()?.let(onKidAgeChange)
+                kidsAgesText = it
+                onKidsAgesChange(it)
+                it.split(",").mapNotNull { s -> s.trim().toIntOrNull() }.minOrNull()?.let(onKidAgeChange)
             },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Kid Age (years)") },
+            label = { Text("Kids Ages (comma separated, e.g. 4, 7)") },
+            placeholder = { Text("e.g. 3, 6, 9") },
+            supportingText = { Text("Configure multiple kids for family trip planning") },
             leadingIcon = {
                 Icon(Icons.Default.Person, null)
             },
@@ -522,7 +569,6 @@ private fun TravelPreferencesSection(
             shape = RoundedCornerShape(18.dp),
             colors = textFieldColors,
             keyboardOptions = KeyboardOptions(
-                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
                 imeAction = ImeAction.Done
             ),
             keyboardActions = KeyboardActions(
@@ -1288,6 +1334,145 @@ private fun DropdownSetting(
 
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun GuidePreferencesSection(
+    settings: com.example.travelplanner.data.prefs.AppSettings,
+    onBaseCityChange: (String) -> Unit,
+    onRateChange: (Double) -> Unit,
+    onLanguagesChange: (String) -> Unit,
+    onSpecializationChange: (String) -> Unit,
+    onEmergencyContactChange: (String) -> Unit
+) {
+    val focusManager = LocalFocusManager.current
+
+    var baseCityText by remember(settings.guideBaseCity) {
+        mutableStateOf(settings.guideBaseCity)
+    }
+    var rateText by remember(settings.guideHourlyRate) {
+        mutableStateOf(settings.guideHourlyRate.toInt().toString())
+    }
+    var languagesText by remember(settings.guideLanguages) {
+        mutableStateOf(settings.guideLanguages)
+    }
+    var specializationText by remember(settings.guideSpecialization) {
+        mutableStateOf(settings.guideSpecialization)
+    }
+    var emergencyContactInput by remember(settings.guideEmergencyContact) {
+        mutableStateOf(settings.guideEmergencyContact)
+    }
+
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = MaterialTheme.colorScheme.primary,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+    )
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Hiking, null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "Guide Profile & Location Preferences",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            OutlinedTextField(
+                value = baseCityText,
+                onValueChange = {
+                    baseCityText = it
+                    onBaseCityChange(it)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Base Operating Location / City") },
+                placeholder = { Text("e.g. Goa, Mumbai, Jaipur") },
+                supportingText = { Text("AI Travel Demand Forecast will generate insights tailored to this location") },
+                leadingIcon = { Icon(Icons.Default.LocationOn, null) },
+                singleLine = true,
+                shape = RoundedCornerShape(18.dp),
+                colors = textFieldColors,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+            )
+
+            OutlinedTextField(
+                value = rateText,
+                onValueChange = {
+                    rateText = it
+                    it.toDoubleOrNull()?.let(onRateChange)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Tour / Hourly Guiding Rate (${settings.currency})") },
+                leadingIcon = { Icon(Icons.Default.Payments, null) },
+                singleLine = true,
+                shape = RoundedCornerShape(18.dp),
+                colors = textFieldColors,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                    imeAction = ImeAction.Next
+                )
+            )
+
+            OutlinedTextField(
+                value = languagesText,
+                onValueChange = {
+                    languagesText = it
+                    onLanguagesChange(it)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Spoken Languages") },
+                placeholder = { Text("e.g. English, Hindi, Portuguese") },
+                leadingIcon = { Icon(Icons.Default.Language, null) },
+                singleLine = true,
+                shape = RoundedCornerShape(18.dp),
+                colors = textFieldColors,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+            )
+
+            OutlinedTextField(
+                value = specializationText,
+                onValueChange = {
+                    specializationText = it
+                    onSpecializationChange(it)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Tour Specialization") },
+                placeholder = { Text("e.g. Heritage Walks, Nature Treks") },
+                leadingIcon = { Icon(Icons.Default.Stars, null) },
+                singleLine = true,
+                shape = RoundedCornerShape(18.dp),
+                colors = textFieldColors,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+            )
+
+            OutlinedTextField(
+                value = emergencyContactInput,
+                onValueChange = {
+                    emergencyContactInput = it
+                    onEmergencyContactChange(it)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Emergency Contact Helpline") },
+                placeholder = { Text("+1 (555) 019-8877") },
+                leadingIcon = { Icon(Icons.Default.PhoneInTalk, null, tint = MaterialTheme.colorScheme.error) },
+                singleLine = true,
+                shape = RoundedCornerShape(18.dp),
+                colors = textFieldColors,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
+            )
         }
     }
 }

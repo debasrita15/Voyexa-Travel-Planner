@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -62,6 +63,17 @@ fun RegisterScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            AuthTextField(
+                value = formState.username,
+                onValueChange = viewModel::updateUsername,
+                label = "Username / Full Name",
+                leadingIcon = Icons.Default.Person,
+                errorMessage = formState.usernameError,
+                enabled = !formState.isLoading,
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Next
+            )
+
             AuthTextField(
                 value = formState.email,
                 onValueChange = viewModel::updateEmail,

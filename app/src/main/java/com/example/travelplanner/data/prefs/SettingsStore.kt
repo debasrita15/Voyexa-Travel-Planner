@@ -20,9 +20,15 @@ data class AppSettings(
     val currency: String,
     val adultsCount: Int,
     val kidAgeYears: Int,
+    val kidsAgesText: String = "2, 5",
     val kidNapRequired: Boolean,
     val kidFriendlyPreference: Int,
     val travelPace: TravelPace,
+    val guideBaseCity: String = "Goa",
+    val guideHourlyRate: Double = 1500.0,
+    val guideLanguages: String = "English, Hindi",
+    val guideSpecialization: String = "Heritage & Culture",
+    val guideEmergencyContact: String = "+1 (555) 019-8877",
     val llmProvider: LLMProviderType,
     val openAIModel: String,
     val groqModel: String,
@@ -42,9 +48,16 @@ class SettingsStore(private val context: Context) {
 
     private val KEY_ADULTS = intPreferencesKey("adults")
     private val KEY_KID_AGE = intPreferencesKey("kid_age")
+    private val KEY_KIDS_AGES = stringPreferencesKey("kids_ages")
     private val KEY_KID_NAP = booleanPreferencesKey("kid_nap")
     private val KEY_KID_PREF = intPreferencesKey("kid_pref")
     private val KEY_PACE = stringPreferencesKey("pace")
+
+    private val KEY_GUIDE_BASE_CITY = stringPreferencesKey("guide_base_city")
+    private val KEY_GUIDE_HOURLY_RATE = doublePreferencesKey("guide_hourly_rate")
+    private val KEY_GUIDE_LANGUAGES = stringPreferencesKey("guide_languages")
+    private val KEY_GUIDE_SPECIALIZATION = stringPreferencesKey("guide_specialization")
+    private val KEY_GUIDE_EMERGENCY_CONTACT = stringPreferencesKey("guide_emergency_contact")
 
     private val KEY_LLM_PROVIDER = stringPreferencesKey("llm_provider")
     private val KEY_OPENAI_MODEL = stringPreferencesKey("openai_model")
@@ -70,9 +83,15 @@ class SettingsStore(private val context: Context) {
                 currency = p[KEY_CURRENCY] ?: defaultCurrency,
                 adultsCount = p[KEY_ADULTS] ?: 2,
                 kidAgeYears = p[KEY_KID_AGE] ?: 2,
+                kidsAgesText = p[KEY_KIDS_AGES] ?: "2, 5",
                 kidNapRequired = p[KEY_KID_NAP] ?: true,
                 kidFriendlyPreference = p[KEY_KID_PREF] ?: 80,
                 travelPace = TravelPace.valueOf(p[KEY_PACE] ?: TravelPace.MEDIUM.name),
+                guideBaseCity = p[KEY_GUIDE_BASE_CITY] ?: "Goa",
+                guideHourlyRate = p[KEY_GUIDE_HOURLY_RATE] ?: 1500.0,
+                guideLanguages = p[KEY_GUIDE_LANGUAGES] ?: "English, Hindi",
+                guideSpecialization = p[KEY_GUIDE_SPECIALIZATION] ?: "Heritage & Culture",
+                guideEmergencyContact = p[KEY_GUIDE_EMERGENCY_CONTACT] ?: "+1 (555) 019-8877",
                 llmProvider = LLMProviderType.valueOf(p[KEY_LLM_PROVIDER] ?: LLMProviderType.GROQ.name),
                 openAIModel = p[KEY_OPENAI_MODEL] ?: "gpt-4o-mini",
                 groqModel = p[KEY_GROQ_MODEL] ?: "llama-3.3-70b-versatile",
@@ -97,9 +116,16 @@ class SettingsStore(private val context: Context) {
 
             p[KEY_ADULTS] = updated.adultsCount
             p[KEY_KID_AGE] = updated.kidAgeYears
+            p[KEY_KIDS_AGES] = updated.kidsAgesText
             p[KEY_KID_NAP] = updated.kidNapRequired
             p[KEY_KID_PREF] = updated.kidFriendlyPreference
             p[KEY_PACE] = updated.travelPace.name
+
+            p[KEY_GUIDE_BASE_CITY] = updated.guideBaseCity
+            p[KEY_GUIDE_HOURLY_RATE] = updated.guideHourlyRate
+            p[KEY_GUIDE_LANGUAGES] = updated.guideLanguages
+            p[KEY_GUIDE_SPECIALIZATION] = updated.guideSpecialization
+            p[KEY_GUIDE_EMERGENCY_CONTACT] = updated.guideEmergencyContact
 
             p[KEY_LLM_PROVIDER] = updated.llmProvider.name
             p[KEY_OPENAI_MODEL] = updated.openAIModel

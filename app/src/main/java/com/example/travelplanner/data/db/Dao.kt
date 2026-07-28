@@ -9,6 +9,12 @@ interface TripDao {
     @Query("SELECT * FROM trip_plan ORDER BY startDateEpochMs ASC")
     fun observeTrips(): Flow<List<TripPlanEntity>>
 
+    @Query("SELECT * FROM trip_plan ORDER BY startDateEpochMs ASC")
+    suspend fun getTripsSync(): List<TripPlanEntity>
+
+    @Query("SELECT * FROM trip_plan WHERE userId = :userId OR userId = '' ORDER BY startDateEpochMs ASC")
+    fun observeTripsForUser(userId: String): Flow<List<TripPlanEntity>>
+
     @Query("SELECT * FROM trip_plan WHERE id = :tripId LIMIT 1")
     fun observeTrip(tripId: String): Flow<TripPlanEntity?>
 
@@ -69,4 +75,20 @@ interface TripDao {
 
     @Query("DELETE FROM packing_item WHERE tripId = :tripId")
     suspend fun deletePackingByTrip(tripId: String)
+
+    // Clear all tables for user isolation / logout
+    @Query("DELETE FROM trip_plan")
+    suspend fun clearAllTrips()
+
+    @Query("DELETE FROM itinerary_day")
+    suspend fun clearAllDays()
+
+    @Query("DELETE FROM activity_item")
+    suspend fun clearAllActivities()
+
+    @Query("DELETE FROM trip_budget_item")
+    suspend fun clearAllBudgets()
+
+    @Query("DELETE FROM packing_item")
+    suspend fun clearAllPacking()
 }

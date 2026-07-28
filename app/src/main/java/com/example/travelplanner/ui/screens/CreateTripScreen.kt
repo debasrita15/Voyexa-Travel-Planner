@@ -89,9 +89,10 @@ fun CreateTripScreen(
 
     val scope = rememberCoroutineScope()
 
-    var title by remember { mutableStateOf("Family Trip") }
-    var destination by remember { mutableStateOf("Pondicherry") }
-    var budget by remember { mutableStateOf(60000.0) }
+    var title by remember { mutableStateOf("") }
+    var destination by remember { mutableStateOf("") }
+    var budgetText by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     var type by remember { mutableStateOf(TripType.DOMESTIC) }
 
     val now = System.currentTimeMillis()
@@ -311,29 +312,28 @@ fun CreateTripScreen(
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
-
                     modifier = Modifier.weight(1f),
-
-                    value = budget.toString(),
-
+                    value = budgetText,
                     onValueChange = {
-                        budget = it.toDoubleOrNull() ?: budget
+                        budgetText = it.filter { char -> char.isDigit() || char == '.' }
+                        errorMessage = null
                     },
-
                     label = {
                         Text("Budget Cap")
                     },
-
+                    placeholder = {
+                        Text("e.g. 50000")
+                    },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                    ),
                     shape = RoundedCornerShape(18.dp),
-
                     colors = OutlinedTextFieldDefaults.colors(
-
                         focusedBorderColor =
                             if (isSystemInDarkTheme())
                                 MaterialTheme.colorScheme.tertiary
                             else
                                 MaterialTheme.colorScheme.primary,
-
                         focusedLabelColor =
                             if (isSystemInDarkTheme())
                                 MaterialTheme.colorScheme.tertiary
@@ -344,11 +344,18 @@ fun CreateTripScreen(
                                 MaterialTheme.colorScheme.tertiary
                             else
                                 MaterialTheme.colorScheme.primary,
-
                     )
-
                 )
                 DropdownTripType(type = type, onChange = { type = it })
+            }
+
+            errorMessage?.let { err ->
+                Text(
+                    text = err,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
             }
 
             Spacer(Modifier.height(8.dp))
@@ -382,9 +389,7 @@ fun CreateTripScreen(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { showEndDatePicker = true },
                 colors = CardDefaults.outlinedCardColors(
-
                     containerColor = MaterialTheme.colorScheme.surface
-
                 )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -408,44 +413,41 @@ fun CreateTripScreen(
             Spacer(Modifier.height(10.dp))
 
             Button(
-
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
-
                 shape = RoundedCornerShape(18.dp),
-
                 colors = ButtonDefaults.buttonColors(
-
                     containerColor = MaterialTheme.colorScheme.tertiary,
-
                     contentColor = MaterialTheme.colorScheme.onTertiary
-
                 ),
-
                 elevation = ButtonDefaults.buttonElevation(
                     defaultElevation = 6.dp
                 ),
-
                 onClick = {
+                    if (title.isBlank()) {
+                        errorMessage = "Please enter a trip title"
+                        return@Button
+                    }
+                    if (destination.isBlank()) {
+                        errorMessage = "Please enter a destination"
+                        return@Button
+                    }
+
+                    val finalBudget = budgetText.toDoubleOrNull() ?: 0.0
 
                     scope.launch {
-
                         val id = vm.createTrip(
-                            title,
-                            destination,
+                            title.trim(),
+                            destination.trim(),
                             startMs,
                             endMs,
                             type,
-                            budget
+                            finalBudget
                         )
-
                         onCreated(id)
-
                     }
-
                 }
-
             ) {
 
                 Text(

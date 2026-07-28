@@ -90,7 +90,16 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
 
     implementation("androidx.compose.material:material-icons-extended")
+    // Supabase Kotlin SDK BOM
+    implementation(platform("io.github.jan-tennert.supabase:bom:3.0.3"))
+    // Modules needed for Auth, Database, Storage & Realtime
+    implementation("io.github.jan-tennert.supabase:auth-kt")
+    implementation("io.github.jan-tennert.supabase:postgrest-kt")
+    implementation("io.github.jan-tennert.supabase:storage-kt")
+    implementation("io.github.jan-tennert.supabase:realtime-kt")
 
+    // Ktor Client for Android HTTP networking
+    implementation("io.ktor:ktor-client-okhttp:3.0.2")
 }
 
 kotlin {

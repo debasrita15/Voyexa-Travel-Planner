@@ -13,10 +13,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class AuthFormState(
+    val username: String = "",
     val email: String = "",
     val password: String = "",
     val confirmPassword: String = "",
     val role: String = "Traveller",
+    val usernameError: String? = null,
     val emailError: String? = null,
     val passwordError: String? = null,
     val confirmPasswordError: String? = null,
@@ -34,6 +36,10 @@ class AuthViewModel : ViewModel() {
 
     private val _formState = MutableStateFlow(AuthFormState())
     val formState: StateFlow<AuthFormState> = _formState.asStateFlow()
+
+    fun updateUsername(value: String) {
+        _formState.value = _formState.value.copy(username = value, usernameError = null, generalError = null)
+    }
 
     fun updateEmail(value: String) {
         _formState.value = _formState.value.copy(email = value, emailError = null, generalError = null)
@@ -89,6 +95,7 @@ class AuthViewModel : ViewModel() {
 
     fun register(onSuccess: (String) -> Unit) {
         val state = _formState.value
+        val usernameError = if (state.username.isBlank()) "Full Name / Username is required" else null
         val emailError = validateEmail(state.email)
         val passwordError = validatePassword(state.password)
         val confirmError = when {
@@ -97,8 +104,9 @@ class AuthViewModel : ViewModel() {
             else -> null
         }
 
-        if (emailError != null || passwordError != null || confirmError != null) {
+        if (usernameError != null || emailError != null || passwordError != null || confirmError != null) {
             _formState.value = state.copy(
+                usernameError = usernameError,
                 emailError = emailError,
                 passwordError = passwordError,
                 confirmPasswordError = confirmError
@@ -108,7 +116,13 @@ class AuthViewModel : ViewModel() {
 
         viewModelScope.launch {
             _formState.value = state.copy(isLoading = true, generalError = null)
-            when (val result = authRepository.register(state.email, state.password, state.confirmPassword, state.role)) {
+            when (val result = authRepository.register(
+                email = state.email,
+                password = state.password,
+                confirmPassword = state.confirmPassword,
+                role = state.role,
+                displayName = state.username.trim()
+            )) {
                 is AuthResult.Success -> {
                     _formState.value = AuthFormState()
                     onSuccess(result.role)

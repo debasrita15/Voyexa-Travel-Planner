@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelplanner.app.AppGraph
@@ -52,6 +53,7 @@ fun GuideDashboardScreen(
     onNavigateToSupport: () -> Unit,
     onNavigateToBookingDetails: (String) -> Unit,
     onNavigateToScheduleEditor: () -> Unit,
+    onNavigateToSettings: () -> Unit = {},
     viewModel: GuideDashboardViewModel = viewModel()
 ) {
     val session by AppGraph.authRepository.observeSession()
@@ -63,6 +65,7 @@ fun GuideDashboardScreen(
     val schedule by viewModel.schedule.collectAsState()
     val earnings by viewModel.earnings.collectAsState()
     val profile by viewModel.profile.collectAsState()
+    val reviews by viewModel.reviews.collectAsState()
 
     var selectedFilter by remember { mutableStateOf("All") }
 
@@ -76,25 +79,16 @@ fun GuideDashboardScreen(
         }
     }
 
-    val reviews = remember {
-        listOf(
-            ReviewItem(
-                id = "r1",
-                travellerName = "Emily Watson",
-                tourName = "Old Goa Churches Tour",
-                rating = 5,
-                reviewText = "Incredible guide! Explained the architecture and historical background of Old Goa so passionately. Highly recommended!",
-                date = "July 12, 2026"
-            ),
-            ReviewItem(
-                id = "r2",
-                travellerName = "James Peterson",
-                tourName = "Goa Heritage Walk",
-                rating = 4,
-                reviewText = "Very friendly, punctual, and knowledgeable. The heritage walk was very engaging.",
-                date = "July 08, 2026"
-            )
-        )
+    val aiOptimizationText by viewModel.aiOptimizationText.collectAsState()
+    val isOptimizing by viewModel.isOptimizing.collectAsState()
+    val aiDemandInsights by viewModel.aiDemandInsights.collectAsState()
+    val aiSmartReplies by viewModel.aiSmartReplies.collectAsState()
+    val isGeneratingReply by viewModel.isGeneratingReply.collectAsState()
+
+    var selectedBookingForAiReply by remember { mutableStateOf<BookingItem?>(null) }
+
+    LaunchedEffect(Unit) {
+        viewModel.syncGuideBookings()
     }
 
     Scaffold(
@@ -114,7 +108,16 @@ fun GuideDashboardScreen(
                     profile = profile,
                     isOnline = isOnline,
                     onToggleOnline = { isOnline = !isOnline },
+                    onOpenSettings = onNavigateToSettings,
                     onLogout = onLogout
+                )
+            }
+
+            // 1.5 Travel Demand Insight Card
+            item {
+                AiDemandCard(
+                    insight = aiDemandInsights,
+                    onRefresh = { viewModel.refreshDemandInsights() }
                 )
             }
 
@@ -125,15 +128,77 @@ fun GuideDashboardScreen(
                 StatsGrid(
                     earnings = earnings,
                     profile = profile,
+                    upcomingCount = upcomingBookings.size,
                     onNavigateToEarnings = onNavigateToEarnings,
                     onNavigateToReviews = onNavigateToReviews,
                     onNavigateToManageBookings = onNavigateToManageBookings
                 )
             }
 
-            // 3. Today's Schedule
+            // 3. Today's Schedule with AI Optimizer
             item {
-                SectionTitle("Today's Schedule")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SectionTitle("Today's Schedule")
+                    Button(
+                        onClick = {
+                            val firstDestination = schedule.firstOrNull()?.destination ?: "Old Goa Heritage Walk"
+                            viewModel.optimizeRouteWithAi(firstDestination, "Today")
+                        },
+                        enabled = !isOptimizing,
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiary
+                        )
+                    ) {
+                        if (isOptimizing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = MaterialTheme.colorScheme.onTertiary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(16.dp))
+                        }
+                        Spacer(Modifier.width(6.dp))
+                        Text("⚡ Optimize Route", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
+
+            if (!aiOptimizationText.isNullOrBlank()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f))
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.secondary)
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "Smart Route Optimization & Guide Insights",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = aiOptimizationText!!,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                }
             }
             if (schedule.isEmpty()) {
                 item {
@@ -232,6 +297,10 @@ fun GuideDashboardScreen(
                         BookingCard(
                             booking = booking,
                             onClick = { onNavigateToBookingDetails(booking.id) },
+                            onAiSmartReply = {
+                                selectedBookingForAiReply = booking
+                                viewModel.generateSmartReplies(booking.travellerName, booking.specialRequests, booking.destination)
+                            },
                             onMessage = onNavigateToChat
                         )
                     }
@@ -242,17 +311,94 @@ fun GuideDashboardScreen(
             item {
                 SectionTitle("Recent Traveller Reviews")
             }
-            items(reviews) { review ->
-                ReviewCard(
-                    review = review,
-                    onClick = onNavigateToReviews
-                )
+            if (reviews.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("No traveller reviews yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            } else {
+                items(reviews) { review ->
+                    ReviewCard(
+                        review = review,
+                        onClick = onNavigateToReviews
+                    )
+                }
             }
 
             // Bottom Spacer
             item {
                 Spacer(Modifier.height(60.dp))
             }
+        }
+
+        if (selectedBookingForAiReply != null) {
+            val booking = selectedBookingForAiReply!!
+            AlertDialog(
+                onDismissRequest = { selectedBookingForAiReply = null },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.tertiary)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Smart Quick Replies", fontWeight = FontWeight.Bold)
+                    }
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            "Suggested response options for ${booking.travellerName} (${booking.destination}):",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (isGeneratingReply) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(28.dp), color = MaterialTheme.colorScheme.tertiary)
+                            }
+                        } else {
+                            aiSmartReplies.forEach { replyText ->
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            selectedBookingForAiReply = null
+                                            onNavigateToChat()
+                                        }
+                                ) {
+                                    Text(
+                                        text = replyText,
+                                        modifier = Modifier.padding(14.dp),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { selectedBookingForAiReply = null }) {
+                        Text("Close")
+                    }
+                }
+            )
         }
     }
 }
@@ -273,6 +419,7 @@ private fun GuideHeader(
     profile: GuideProfileData,
     isOnline: Boolean,
     onToggleOnline: () -> Unit,
+    onOpenSettings: () -> Unit,
     onLogout: () -> Unit
 ) {
     val dark = isSystemInDarkTheme()
@@ -354,8 +501,7 @@ private fun GuideHeader(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Display initials preferring profile.name, falling back to session.displayName
-                val displayName = profile.name.ifBlank { session.displayName }
+                val displayName = if (session.displayName.isNotBlank()) session.displayName else profile.name.ifBlank { "Guide Partner" }
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.tertiaryContainer,
@@ -402,15 +548,28 @@ private fun GuideHeader(
                     )
                 }
 
-                FilledIconButton(
-                    onClick = onLogout,
-                    modifier = Modifier.bounceClick(onClick = onLogout),
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                ) {
-                    Icon(Icons.Default.ExitToApp, contentDescription = "Sign Out")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilledIconButton(
+                        onClick = onOpenSettings,
+                        modifier = Modifier.bounceClick(onClick = onOpenSettings),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiary,
+                            contentColor = MaterialTheme.colorScheme.onTertiary
+                        )
+                    ) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
+
+                    FilledIconButton(
+                        onClick = onLogout,
+                        modifier = Modifier.bounceClick(onClick = onLogout),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    ) {
+                        Icon(Icons.Default.ExitToApp, contentDescription = "Sign Out")
+                    }
                 }
             }
 
@@ -472,6 +631,7 @@ private fun GuideHeader(
 private fun StatsGrid(
     earnings: EarningsData,
     profile: GuideProfileData,
+    upcomingCount: Int,
     onNavigateToEarnings: () -> Unit,
     onNavigateToReviews: () -> Unit,
     onNavigateToManageBookings: () -> Unit
@@ -488,7 +648,7 @@ private fun StatsGrid(
             )
             StatCard(
                 icon = Icons.Default.CalendarMonth,
-                value = "8",
+                value = "$upcomingCount",
                 title = "Upcoming Tours",
                 modifier = Modifier.weight(1f),
                 tint = MaterialTheme.colorScheme.secondary,
@@ -770,6 +930,9 @@ private fun EmptyScheduleCard() {
 private fun BookingCard(
     booking: BookingItem,
     onClick: () -> Unit,
+    onAccept: (() -> Unit)? = null,
+    onReject: (() -> Unit)? = null,
+    onAiSmartReply: () -> Unit,
     onMessage: () -> Unit
 ) {
     val dark = isSystemInDarkTheme()
@@ -803,35 +966,94 @@ private fun BookingCard(
                     )
                 }
 
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = if (booking.paymentStatus == "Paid") Color(0xFFD1FAE5) else Color(0xFFFEF3C7)
-                ) {
-                    Text(
-                        text = booking.paymentStatus,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (booking.paymentStatus == "Paid") Color(0xFF065F46) else Color(0xFF92400E),
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = when (booking.status) {
+                            "Pending" -> Color(0xFFFEF3C7)
+                            "Confirmed" -> Color(0xFFD1FAE5)
+                            else -> Color(0xFFFEE2E2)
+                        }
+                    ) {
+                        Text(
+                            text = booking.status,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = when (booking.status) {
+                                "Pending" -> Color(0xFF92400E)
+                                "Confirmed" -> Color(0xFF065F46)
+                                else -> Color(0xFF991B1B)
+                            },
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
                 }
             }
 
             Spacer(Modifier.height(14.dp))
             DetailRow(label = "Date", value = booking.date)
             DetailRow(label = "Group Size", value = "${booking.groupSize} People")
+            if (booking.specialRequests.isNotBlank() && booking.specialRequests != "None") {
+                DetailRow(label = "Requests", value = booking.specialRequests)
+            }
             Spacer(Modifier.height(14.dp))
+
+            if (booking.status == "Pending" && onAccept != null && onReject != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = onAccept,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF10B981),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Accept", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    }
+                    OutlinedButton(
+                        onClick = onReject,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Reject", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedButton(
                     onClick = onClick,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("View Details")
+                    Text("Details", style = MaterialTheme.typography.labelSmall)
+                }
+                OutlinedButton(
+                    onClick = onAiSmartReply,
+                    modifier = Modifier.weight(1.1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.tertiary
+                    )
+                ) {
+                    Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("⚡ Quick Reply", style = MaterialTheme.typography.labelSmall)
                 }
                 Button(
                     onClick = onMessage,
@@ -841,10 +1063,10 @@ private fun BookingCard(
                     Icon(
                         imageVector = Icons.Default.Chat,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(14.dp)
                     )
-                    Spacer(Modifier.width(6.dp))
-                    Text("Message")
+                    Spacer(Modifier.width(4.dp))
+                    Text("Message", style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
@@ -936,7 +1158,9 @@ private fun QuickActionCard(
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
+                maxLines = 2,
+                minLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -1144,6 +1368,70 @@ private fun DetailRow(label: String, value: String) {
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface
         )
+    }
+}
+
+@Composable
+private fun AiDemandCard(
+    insight: String,
+    onRefresh: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onRefresh() },
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f)
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.35f))
+    ) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(42.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.TrendingUp,
+                        contentDescription = "Demand Insights",
+                        tint = MaterialTheme.colorScheme.onTertiary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Travel Demand Forecast",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh Insight",
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = insight,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
     }
 }
 

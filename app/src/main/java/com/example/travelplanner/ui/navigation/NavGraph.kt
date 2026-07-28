@@ -144,6 +144,7 @@ fun NavGraph() {
                 onOpenSuggestions = { nav.navigate(Routes.SUGGESTIONS) },
                 onOpenYearPlanner = { nav.navigate(Routes.YEAR_PLANNER) },
                 onOpenTrip = { tripId -> nav.navigate(Routes.tripDetail(tripId)) },
+                onOpenChat = { nav.navigate(Routes.CHAT) },
                 onLogout = {
                     scope.launch {
                         AppGraph.authRepository.logout()
@@ -172,7 +173,8 @@ fun NavGraph() {
                 onNavigateToProfile = { nav.navigate(Routes.GUIDE_PROFILE) },
                 onNavigateToSupport = { nav.navigate(Routes.SUPPORT) },
                 onNavigateToBookingDetails = { id -> nav.navigate(Routes.bookingDetails(id)) },
-                onNavigateToScheduleEditor = { nav.navigate(Routes.SCHEDULE_EDITOR) }
+                onNavigateToScheduleEditor = { nav.navigate(Routes.SCHEDULE_EDITOR) },
+                onNavigateToSettings = { nav.navigate(Routes.SETTINGS) }
             )
         }
 
