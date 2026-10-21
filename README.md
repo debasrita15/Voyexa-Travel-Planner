@@ -157,6 +157,46 @@ Voyexa demonstrates how modern Android development, cutting-edge AI inference AP
 </ul>
 
 <hr/>
+<h2>🔄 Application Flow</h2>
+```mermaid
+flowchart TD
+    subgraph Auth["🔐 Authentication & Role Selection"]
+        A["User Opens Voyexa"] --> B{"Supabase Auth<br/>(Login / Sign Up)"}
+        B -->|Traveller Role| T1["Traveller Dashboard"]
+        B -->|Guide Role| G1["Guide Dashboard & Setup<br/>(Operating City, Rates, Bio)"]
+    end
+    subgraph Matching["🗺️ Trip Creation & Location-Aware Matching"]
+        T1 --> T2["Create Trip Request<br/>(Destination, Dates, Package)"]
+        T2 --> DB[("Supabase Cloud Sync &<br/>Local Room SQLite Cache")]
+        DB --> M{"Match Engine<br/>(Operating City)"}
+        M -->|Destination Match| G2["Booking Request Appears<br/>on Guide Dashboard"]
+    end
+    subgraph Decision["⚡ Guide Decision & Chat Activation"]
+        G2 --> D{"Guide Decision"}
+        D -->|Reject 🔴| RJ["Booking Marked Rejected<br/>Traveller Notified"]
+        D -->|Accept 🟢| AC["Booking Accepted<br/>Chat Channel Dynamic Unlock"]
+    end
+    subgraph Engagement["💬 Collaboration & GenAI Intelligence"]
+        AC <--> CH["Real-Time Chat Thread<br/>(Traveller ↔ Guide)"]
+        AI["Groq Cloud (LLaMA 3.3 70B)<br/>• Real-time Travel Demand Forecast<br/>• Crowd-Beating Route Optimizer<br/>• AI Quick Reply Generator"]
+        AI -.->|Contextual Replies| CH
+        AI -.->|City Demand Insights| G1
+    end
+    subgraph Review["⭐ Completion & Feedback Loop"]
+        CH --> TC["Tour Completed"]
+        TC --> RV["Traveller Leaves Verified Review<br/>(1–5 Star Rating & Feedback)"]
+        RV --> PR["Guide Profile & Analytics<br/>Dynamically Updated (Room + Supabase)"]
+    end
+    classDef primary fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1;
+    classDef accent fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#6b21a8;
+    classDef success fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#15803d;
+    classDef danger fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#b91c1c;
+    classDef ai fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e;
+    class A,B,T1,G1 primary;
+    class AI ai;
+    class AC success;
+    class RJ danger;
+    class CH,T2,G2,RV,PR accent;
 
 <h2>📦 Setup & Installation Instructions</h2>
 
