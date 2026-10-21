@@ -1,249 +1,224 @@
-<h1 align="center">🌍 Voyexa: GenAI Travel Planner & Guide Marketplace</h1>
+# 🌍 Voyexa: GenAI Travel Planner & Guide Marketplace
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Kotlin-1.9%2B-blue"/>
-  <img src="https://img.shields.io/badge/Jetpack%20Compose-UI-green"/>
-  <img src="https://img.shields.io/badge/Architecture-Clean%20%2B%20MVVM-orange"/>
-  <img src="https://img.shields.io/badge/AI-Groq%20%7C%20LLaMA%203.3%2070B-purple"/>
-  <img src="https://img.shields.io/badge/Backend-Supabase-blue"/>
-  <img src="https://img.shields.io/badge/Database-Room%20SQLite-red"/>
-  <img src="https://img.shields.io/badge/License-MIT-yellow.svg"/>
+  <img src="https://img.shields.io/badge/Kotlin-1.9%2B-blue.svg" alt="Kotlin"/>
+  <img src="https://img.shields.io/badge/Jetpack%20Compose-UI-green.svg" alt="Jetpack Compose"/>
+  <img src="https://img.shields.io/badge/Architecture-Clean%20%2B%20MVVM-orange.svg" alt="Clean Architecture and MVVM"/>
+  <img src="https://img.shields.io/badge/AI-Groq%20%7C%20LLaMA%203.3%2070B-purple.svg" alt="Groq and LLaMA"/>
+  <img src="https://img.shields.io/badge/Backend-Supabase-blue.svg" alt="Supabase"/>
+  <img src="https://img.shields.io/badge/Database-Room%20SQLite-red.svg" alt="Room SQLite"/>
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"/>
 </p>
 
 <p align="center">
-  ⚡ Built an ultra-low latency AI travel platform connecting Travellers & Guides using Groq API with LLaMA 3.3 70B inference
+  <b>An AI-powered Android travel planner and local guide marketplace connecting travellers with local experts.</b>
 </p>
 
-<hr/>
-
-<h2>✨ Overview</h2>
-
-<p>
-<b>Voyexa</b> is a modern, full-stack Android application that combines <b>real-time GenAI travel intelligence</b> with a <b>dual-sided marketplace</b> connecting Travellers and verified Local Tour Guides.
+<p align="center">
+  <a href="https://github.com/debasrita15/Voyexa-Travel-Planner/releases/tag/v1.0.0">Download Voyexa v1.0.0</a>
+  ·
+  <a href="https://github.com/debasrita15/Voyexa-Travel-Planner">View Repository</a>
 </p>
 
-<p>
-Built with <b>100% Jetpack Compose + Clean MVVM Architecture</b>, Voyexa delivers location-aware demand forecasts, crowd-beating route optimizations, instant booking sync, and real-time chat with persistent cloud and local storage.
-</p>
+---
 
-<hr/>
+## 🌟 Overview
 
-<h2>📲 Download APK</h2>
+**Voyexa** is a full-stack Android application that combines generative AI travel assistance with a two-sided marketplace for travellers and local tour guides. Built using **Kotlin, Jetpack Compose, Clean Architecture, and MVVM**, the application brings trip planning, guide booking, communication, and AI-powered travel insights into one experience.
 
-<ul>
-  <li>👉 <b>Latest Official Release:</b> 
-    <a href="https://github.com/debasrita15/Voyexa-Travel-Planner/releases/tag/v1.0.0">Voyexa v1.0.0 Release</a>
-  </li>
+Voyexa uses **Groq-hosted LLaMA 3.3 70B** to generate travel-demand insights, itinerary suggestions, and contextual quick replies. **Supabase** provides cloud authentication and data services, while **Room SQLite** supports local persistence for selected data.
 
-  <li>📦 <b>Direct APK Download:</b> 
-    <a href="https://github.com/debasrita15/Voyexa-Travel-Planner/releases/tag/v1.0.0">Download Voyexa APK</a>
-  </li>
-</ul>
+## 🎯 Problem Statement
 
-<h3>📱 How to install on Android</h3>
+Traditional travel platforms often separate itinerary planning from local guide discovery and may not provide tailored travel-demand insights for local guides.
 
-<ol>
-  <li>Download the APK from the release link above</li>
-  <li>Open the downloaded <code>.apk</code> file on your Android device</li>
-  <li>If prompted, enable <b>“Install unknown apps”</b> permission for your browser/file manager</li>
-  <li>Tap <b>Install</b> 🚀</li>
-  <li>Open Voyexa and start exploring</li>
-</ol>
+Voyexa aims to address these challenges by:
 
-<hr/>
+- Connecting travellers and local guides through a unified mobile platform.
+- Providing guides with AI-generated travel-demand insights and pricing suggestions.
+- Generating suggested itineraries, route ideas, local storytelling points, and food stops.
+- Supporting local data persistence alongside cloud-backed services.
 
-<h2>💡 Why Voyexa?</h2>
+## ✨ Key Features
 
-<p>
-This project demonstrates how cutting-edge mobile architecture, sub-second LLM inference (Groq), and modern cloud backends (Supabase) can be synthesized to build a production-grade, offline-resilient Android application.
-</p>
+- **🤖 AI Travel Insights** — Generate travel-demand insights tailored to a guide's operating city using Groq and LLaMA 3.3 70B.
+- **🗺️ Smart Itinerary Suggestions** — Create suggested schedules, route ideas, local storytelling points, and culinary stops.
+- **⚡ AI Quick Replies** — Generate contextual reply suggestions to help guides communicate with travellers.
+- **🧳 Traveller–Guide Marketplace** — Support traveller trip requests and guide-side accept/reject actions.
+- **💬 Booking-Linked Chat** — Enable chat threads for requests accepted by a guide.
+- **⭐ Traveller Reviews** — Collect 1–5 star ratings and written feedback for guides.
+- **🖼️ Profile Photo Picker** — Use Android's native `ActivityResultContracts.PickVisualMedia` flow for selecting profile images.
+- **⚙️ Guide Preferences** — Store operating city, hourly rate, languages, and emergency helpline preferences.
+- **📱 Modern Compose UI** — Material 3 components, responsive layouts, edge-to-edge support, and animated interactions.
+- **💾 Local and Cloud Persistence** — Use Room SQLite for local data and Supabase for cloud-backed authentication and data.
 
-<hr/>
+## 📲 Download and Install
 
-<h2>🎯 Problem Statement</h2>
+**Latest release:** [Voyexa v1.0.0 on GitHub Releases](https://github.com/debasrita15/Voyexa-Travel-Planner/releases/tag/v1.0.0)
 
-<p>
-Traditional travel platforms separate itinerary creation from local guide hiring and lack intelligent real-time demand forecasting for tour operators.
-</p>
+### Installation Steps
 
-<p><b>Voyexa solves this by:</b></p>
+1. Open the release page and download the APK asset.
+2. Open the downloaded `.apk` file on your Android device.
+3. If prompted, allow installation from that source in Android settings.
+4. Tap **Install**, then open Voyexa.
 
-<ul>
-  <li>Bridging travellers and guides on a single unified platform with location-aware matching</li>
-  <li>Providing local tour guides with real-time AI travel demand forecasts and pricing suggestions</li>
-  <li>Generating crowd-beating smart route itineraries and storytelling talking points via Groq LLaMA 3.3 70B</li>
-  <li>Enabling offline-first resilience with local Room DB alongside Supabase cloud synchronization</li>
-</ul>
+> **Note:** If no APK is attached to the release, build the application from source using the setup instructions below.
 
-<hr/>
+## 🏗️ Architecture
 
-<h2>✨ Key Features</h2>
+Voyexa follows a **Clean Architecture + MVVM** approach, separating the UI, state management, domain models, persistence, and external services.
 
-<ul>
-  <li>🤖 <b>Real-time GenAI Forecasting</b> — Sub-second travel demand insights tailored to the guide's base city via Groq LLaMA 3.3 70B</li>
-  <li>🗺️ <b>Smart Route Optimizer</b> — AI-generated crowd-beating schedules, storytelling talking points, and local culinary refreshment stops</li>
-  <li>⚡ <b>AI Quick Reply Assistant</b> — Instant contextual reply generator for seamless guide-traveller communication</li>
-  <li>🧳 <b>Dual-Role Marketplace</b> — Full traveller and guide flows with dynamic trip creation, location matching, and Accept/Reject actions</li>
-  <li>💬 <b>Location & Acceptance Filtered Chat</b> — Active chat threads generated exclusively for travellers whose requests are accepted by the guide</li>
-  <li>⭐ <b>Verified Traveller Reviews</b> — 1-to-5 star rating and feedback system dynamically updating the guide's dashboard</li>
-  <li>🖼️ <b>Gallery Photo Picker</b> — Native Android visual media picker (<code>ActivityResultContracts.PickVisualMedia</code>) for profile photo management</li>
-  <li>⚙️ <b>Reactive Preferences</b> — Guide operating city, hourly rate, languages, and emergency helpline persisted via DataStore & SharedPreferences</li>
-  <li>📱 <b>Modern Jetpack Compose UI</b> — Built with Material 3, spring animations (<code>animateFloatAsState</code>), and bounce click effects</li>
-</ul>
+- **UI Layer:** Jetpack Compose and Material 3 screens, including the guide dashboard, booking management, chat, settings, and profile.
+- **ViewModel Layer:** Kotlin Coroutines and `StateFlow` for reactive UI state.
+- **Domain Layer:** Kotlin models such as `BookingItem`, `ReviewItem`, `TourScheduleItem`, and `AppSettings`.
+- **Local Data Layer:** Room SQLite, Preferences DataStore, and EncryptedSharedPreferences.
+- **Cloud Data Layer:** Supabase Auth, PostgreSQL through PostgREST, and Realtime subscriptions.
+- **AI Layer:** Groq API integration for demand insights, itinerary suggestions, and quick replies.
 
-<hr/>
+### System Architecture
 
-<h2>📊 Impact</h2>
-
-<ul>
-  <li>⚡ Achieved <b>sub-second AI inference times (&lt;300ms)</b> using Groq LLaMA 3.3 70B instead of standard slow endpoints</li>
-  <li>🔄 Reduced UI recompositions using <b>StateFlow-based unidirectional state management</b></li>
-  <li>💾 Enabled <b>hybrid persistence</b> across app restarts using Room SQLite for offline trips and Supabase for cloud sync</li>
-  <li>🧠 Improved guide efficiency through <b>location-aware prompt engineering</b> injecting guide city and parameters</li>
-  <li>📱 Delivered a <b>fully responsive edge-to-edge UI</b> with dark/light themes, keyboard insets, and smooth scrolling</li>
-</ul>
-
-<hr/>
-
-<h2>🔥 Key Takeaway</h2>
-
-<p>
-Voyexa demonstrates how modern Android development, cutting-edge AI inference APIs, and cloud backend systems can be combined to build scalable, real-time marketplace applications with clean architecture and robust offline capabilities.
-</p>
-
-<hr/>
-
-<h2>🏗️ Architecture</h2>
-
-<p><b>Clean Architecture + MVVM</b> with strict layer separation:</p>
-
-<ul>
-  <li><b>UI Layer</b> → 100% Jetpack Compose screens (GuideDashboard, ManageBookings, ChatScreen, SettingsScreen, ProfileScreen)</li>
-  <li><b>ViewModel Layer</b> → StateFlow + Coroutines for reactive state emission</li>
-  <li><b>Domain Layer</b> → Pure Kotlin models (BookingItem, ReviewItem, TourScheduleItem, AppSettings)</li>
-  <li><b>Data Layer (Local)</b> → Room SQLite Database + Preferences DataStore + EncryptedSharedPreferences</li>
-  <li><b>Data Layer (Cloud)</b> → Supabase (Auth, PostgREST PostgreSQL, Realtime Subscriptions)</li>
-  <li><b>AI Engine</b> → Groq API with LLaMA 3.3 70B parameter model</li>
-</ul>
-
-<hr/>
-
-<h2>🔄 Application Flow</h2>
-
-<ol>
-  <li>User registers/logs in as Traveller or Guide via Supabase Auth</li>
-  <li>Traveller creates a trip specifying destination, dates, and package type</li>
-  <li>Trip automatically registers on local guides' dashboards matching that location</li>
-  <li>Guide reviews the request and chooses to <b>Accept (🟢)</b> or <b>Reject (🔴)</b></li>
-  <li>Accepted requests dynamically open active chat messaging threads between traveller and guide</li>
-  <li>Guide views real-time travel demand insights and route optimizations for their operating city</li>
-  <li>After tour completion, traveller leaves a 1–5 star review and rating that updates guide's profile</li>
-</ol>
-
-<hr/>
-
-<h2>🛠 Tech Stack</h2>
-
-<ul>
-  <li><b>Language:</b> Kotlin 1.9+</li>
-  <li><b>UI Toolkit:</b> Jetpack Compose & Material 3</li>
-  <li><b>Architecture:</b> Clean Architecture + MVVM</li>
-  <li><b>Asynchronous Programming:</b> Kotlin Coroutines & StateFlow</li>
-  <li><b>AI / LLM Inference:</b> Groq API (LLaMA 3.3 70B Versatile)</li>
-  <li><b>Cloud Backend:</b> Supabase (GoTrue Auth, PostgREST, Realtime)</li>
-  <li><b>Local Database:</b> Room SQLite Database (KSP)</li>
-  <li><b>Local Preferences:</b> Jetpack Preferences DataStore & EncryptedSharedPreferences</li>
-  <li><b>Networking:</b> OkHttp & Ktor Client</li>
-</ul>
-
-<hr/>
-<h2>🔄 Application Flow</h2>
 ```mermaid
 flowchart TD
-    subgraph Auth["🔐 Authentication & Role Selection"]
-        A["User Opens Voyexa"] --> B{"Supabase Auth<br/>(Login / Sign Up)"}
-        B -->|Traveller Role| T1["Traveller Dashboard"]
-        B -->|Guide Role| G1["Guide Dashboard & Setup<br/>(Operating City, Rates, Bio)"]
+    subgraph Android["Android Client"]
+        UI["Jetpack Compose + Material 3"]
+        VM["ViewModels"]
+        State["StateFlow + Coroutines"]
+        Models["Domain Models"]
+        Picker["Native Photo Picker"]
     end
-    subgraph Matching["🗺️ Trip Creation & Location-Aware Matching"]
-        T1 --> T2["Create Trip Request<br/>(Destination, Dates, Package)"]
-        T2 --> DB[("Supabase Cloud Sync &<br/>Local Room SQLite Cache")]
-        DB --> M{"Match Engine<br/>(Operating City)"}
-        M -->|Destination Match| G2["Booking Request Appears<br/>on Guide Dashboard"]
-    end
-    subgraph Decision["⚡ Guide Decision & Chat Activation"]
-        G2 --> D{"Guide Decision"}
-        D -->|Reject 🔴| RJ["Booking Marked Rejected<br/>Traveller Notified"]
-        D -->|Accept 🟢| AC["Booking Accepted<br/>Chat Channel Dynamic Unlock"]
-    end
-    subgraph Engagement["💬 Collaboration & GenAI Intelligence"]
-        AC <--> CH["Real-Time Chat Thread<br/>(Traveller ↔ Guide)"]
-        AI["Groq Cloud (LLaMA 3.3 70B)<br/>• Real-time Travel Demand Forecast<br/>• Crowd-Beating Route Optimizer<br/>• AI Quick Reply Generator"]
-        AI -.->|Contextual Replies| CH
-        AI -.->|City Demand Insights| G1
-    end
-    subgraph Review["⭐ Completion & Feedback Loop"]
-        CH --> TC["Tour Completed"]
-        TC --> RV["Traveller Leaves Verified Review<br/>(1–5 Star Rating & Feedback)"]
-        RV --> PR["Guide Profile & Analytics<br/>Dynamically Updated (Room + Supabase)"]
-    end
-    classDef primary fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1;
-    classDef accent fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#6b21a8;
-    classDef success fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#15803d;
-    classDef danger fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#b91c1c;
-    classDef ai fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e;
-    class A,B,T1,G1 primary;
-    class AI ai;
-    class AC success;
-    class RJ danger;
-    class CH,T2,G2,RV,PR accent;
 
-<h2>📦 Setup & Installation Instructions</h2>
+    subgraph Local["Local Persistence"]
+        Room[("Room SQLite")]
+        Preferences["DataStore / EncryptedSharedPreferences"]
+    end
 
-<p><b>Prerequisites:</b></p>
-<ul>
-  <li>Android Studio Ladybug / Koala or later</li>
-  <li>JDK 17+</li>
-  <li>Android SDK (API 24 to 35)</li>
-  <li>Groq API key — <a href="https://console.groq.com">console.groq.com</a></li>
-  <li>Supabase project — <a href="https://supabase.com">supabase.com</a></li>
-</ul>
+    subgraph Supabase["Supabase Cloud"]
+        Auth["Supabase Auth"]
+        DB[("PostgreSQL / PostgREST")]
+        Realtime["Supabase Realtime"]
+    end
 
-<p><b>Installation:</b></p>
+    subgraph AI["AI Services"]
+        Client["Groq API Client"]
+        Demand["Travel Demand Insights"]
+        Itinerary["Itinerary and Route Suggestions"]
+        Replies["AI Quick Reply Generator"]
+        LLM["LLaMA 3.3 70B via Groq"]
+    end
 
-<pre>
+    UI --> VM
+    UI --> Picker
+    VM --> State
+    State --> Models
+    VM --> Room
+    VM --> Preferences
+    VM --> Auth
+    VM --> DB
+    VM <--> Realtime
+    DB <--> Realtime
+    VM --> Client
+    Client --> Demand
+    Client --> Itinerary
+    Client --> Replies
+    Demand --> LLM
+    Itinerary --> LLM
+    Replies --> LLM
+```
+
+## 🔄 Application Flow
+
+1. A user registers or signs in as a **Traveller** or **Guide** through Supabase Auth.
+2. A traveller creates a trip request with a destination, dates, and package type.
+3. The request appears for guides matching the relevant location.
+4. A guide reviews the request and accepts or rejects it.
+5. Accepted requests enable the associated traveller–guide chat flow.
+6. Guides can access AI-generated travel insights and itinerary suggestions for their operating city.
+7. After the tour, the traveller can submit a star rating and written review.
+
+## 🛠️ Tech Stack
+
+| Area | Technologies |
+|---|---|
+| Language | Kotlin 1.9+ |
+| UI | Jetpack Compose, Material 3 |
+| Architecture | Clean Architecture, MVVM |
+| Asynchronous State | Kotlin Coroutines, StateFlow |
+| AI / LLM | Groq API, LLaMA 3.3 70B Versatile |
+| Cloud Backend | Supabase Auth, PostgREST, PostgreSQL, Realtime |
+| Local Database | Room SQLite, KSP |
+| Preferences | Jetpack Preferences DataStore, EncryptedSharedPreferences |
+| Networking | OkHttp, Ktor Client |
+| Android Media | Activity Result API, `PickVisualMedia` |
+
+## 📁 Project Structure
+
+The following is a high-level view of the application's main layers. Update the structure to match the actual repository before publishing.
+
+```text
+Voyexa-Travel-Planner/
+├── app/
+│   └── src/
+│       └── main/
+│           ├── java/       # Kotlin source code
+│           └── res/        # Android resources
+├── build.gradle.kts        # Gradle configuration
+├── settings.gradle.kts
+└── README.md
+```
+
+## 🚀 Setup and Installation
+
+### Prerequisites
+
+- Android Studio (Koala, Ladybug, or a compatible newer version)
+- JDK 17 or later
+- Android SDK (API 24–35, as specified in the project)
+- A [Groq API key](https://console.groq.com/)
+- A [Supabase project](https://supabase.com/)
+
+### 1. Clone the Repository
+
+```bash
 git clone https://github.com/debasrita15/Voyexa-Travel-Planner.git
-</pre>
+cd Voyexa-Travel-Planner
+```
 
-<p>Open the project in Android Studio, sync Gradle, and run on an Android emulator or physical device 🚀</p>
+### 2. Configure Service Credentials
 
-<hr/>
+Configure your Groq and Supabase credentials using the project's existing configuration method. Check the source code and Gradle configuration for the expected property names before adding values.
 
-<h2>👥 Collaborators & Authors</h2>
+**Security note:** Never commit API keys, service-role keys, passwords, or other secrets to GitHub. Use local configuration or an appropriate secrets-management mechanism.
 
-<ul>
-  <li>
-    👩‍💻 <b>Debasrita Das</b> — <a href="https://github.com/debasrita15">@debasrita15</a>
-  </li>
-  <li>
-    👨‍💻 <b>Swayam Subham Mishra</b> — <a href="https://github.com/SwayamK9">@SwayamK9</a>
-  </li>
-  <li>
-    👩‍💻 <b>Esha Agarwal</b> — <a href="https://github.com/eshaagarwal1805-hash">@eshaagarwal1805-hash</a>
-  </li>
-  <li>
-    👨‍💻 <b>G. Krushna Prasad Achary</b> — <a href="https://github.com/G-Krushna">@G-Krushna</a>
-  </li>
-</ul>
+### 3. Open and Run the App
 
-<hr/>
+1. Open the cloned project in Android Studio.
+2. Allow Gradle sync to finish.
+3. Confirm that the required SDK and local configuration are available.
+4. Select an Android emulator or connect a physical device.
+5. Run the application.
 
-<h2>📜 License</h2>
+## 📈 Engineering Highlights
 
-<p>This project is licensed under the MIT License.</p>
+- **Reactive State Management:** Uses `StateFlow` and unidirectional state flow to connect ViewModels and the Compose UI.
+- **Hybrid Persistence:** Combines Room-based local storage with Supabase cloud services for the data flows implemented by the application.
+- **Location-Aware AI Prompts:** Supplies guide-city context and relevant parameters to AI requests.
+- **Native Android Integration:** Uses the system photo picker for profile-image selection.
+- **Responsive UI:** Includes edge-to-edge layouts, keyboard insets, and dark/light theme support as described in the project documentation.
 
-<hr/>
+> Performance claims, such as AI responses under 300 ms, should be included as measured results only when reproducible timing data is available for the relevant device, network, and API conditions.
 
-<h2>⭐ Support</h2>
+## 👥 Contributors
 
-<p>If you find this project useful, please give it a ⭐ on GitHub!</p>
+- **Debasrita Das** — [@debasrita15](https://github.com/debasrita15)
+- **Swayam Subham Mishra** — [@SwayamK9](https://github.com/SwayamK9)
+- **Esha Agarwal** — [@eshaagarwal1805-hash](https://github.com/eshaagarwal1805-hash)
+- **G. Krushna Prasad Achary** — [@G-Krushna](https://github.com/G-Krushna)
+
+## 📜 License
+
+This project is licensed under the **MIT License**. See the [`LICENSE`](LICENSE) file for details.
+
+## ⭐ Support
+
+If you find Voyexa interesting, consider giving the repository a ⭐ on GitHub!
